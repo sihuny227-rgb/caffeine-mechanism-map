@@ -190,8 +190,8 @@ select{font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface-2
 .dim{opacity:.13}
 .node.dim{opacity:.28}
 
-.detail{margin-top:14px;padding:18px;display:grid;grid-template-columns:minmax(0,1.3fr) 186px minmax(0,1fr);gap:18px 26px;align-items:start}
-@media (max-width:1080px){.detail{grid-template-columns:186px minmax(0,1fr)}.d-main{grid-column:1/-1}}
+.detail{margin-top:14px;padding:18px;display:grid;grid-template-columns:minmax(0,1.3fr) 204px minmax(0,1fr);gap:18px 26px;align-items:start}
+@media (max-width:1080px){.detail{grid-template-columns:204px minmax(0,1fr)}.d-main{grid-column:1/-1}}
 @media (max-width:620px){.detail{grid-template-columns:minmax(0,1fr)}.d-main{grid-column:auto}}
 .d-kind{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 .detail h3{font-size:20px;font-weight:700;margin:4px 0 8px;letter-spacing:-.01em}
@@ -215,15 +215,15 @@ select{font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface-2
 .d-body{display:grid;gap:9px;align-content:start;min-width:0}
 .body-card{border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2);padding:10px 8px 6px;display:grid;gap:6px;justify-items:center}
 .body-k{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.07em;color:var(--muted);text-transform:uppercase}
-.body-fig{width:100%;max-width:168px;height:auto;display:block}
+.body-fig{width:100%;max-width:186px;height:auto;display:block}
 .b-out{fill:none;stroke:var(--line);stroke-linecap:round;stroke-linejoin:round}
 .b-in{fill:none;stroke:var(--surface);stroke-linecap:round;stroke-linejoin:round}
 .b-sil{fill:var(--surface);stroke:var(--line);stroke-width:1.1}
 .b-detail{fill:none;stroke:var(--muted);stroke-width:.7;stroke-opacity:.45}
 .b-dot{fill:var(--muted);opacity:.6}
-.organ{fill:var(--surface-2);stroke:var(--muted);stroke-width:.9;stroke-opacity:.55;transition:fill .18s,stroke .18s}
-.vessel{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-opacity:.45;stroke-linecap:round;stroke-linejoin:round;transition:stroke .18s}
-.organ.on{fill:var(--caf-soft);stroke:var(--caf);stroke-width:1.5;stroke-opacity:1}
+.organ{fill:var(--surface);stroke:var(--muted);stroke-width:.85;stroke-opacity:.38;transition:fill .18s,stroke .18s,stroke-opacity .18s}
+.vessel{fill:none;stroke:var(--muted);stroke-width:1.4;stroke-opacity:.32;stroke-linecap:round;stroke-linejoin:round;transition:stroke .18s,stroke-opacity .18s}
+.organ.on{fill:var(--caf-soft);stroke:var(--caf);stroke-width:1.7;stroke-opacity:1}
 .vessel.on{stroke:var(--caf);stroke-opacity:1;stroke-width:2.1}
 .organ.hit,.vessel.hit{cursor:pointer}
 .organ.hit:hover{stroke:var(--ink);stroke-opacity:1}
