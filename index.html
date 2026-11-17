@@ -1,0 +1,1142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>카페인 기전 지도</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: 실험 노트형 작업대. 노출 조건 레일 + 혈중 농도 곡선 → 인과 경로 지도(5열: 약물·수용체·신호·조직·반응) → 반응 카드 → 심화 탭 */
+:root{
+  --bg:#EEF2F3;
+  --surface:#FFFFFF;
+  --surface-2:#F5F8F8;
+  --ink:#13222A;
+  --muted:#56676E;
+  --line:#D3DDE0;
+  --caf:#3B40B2;       /* 카페인 · 길항제 */
+  --caf-soft:#E4E5F6;
+  --act:#0C776D;       /* 이어지는 변화 → */
+  --act-soft:#DAEFEC;
+  --inh:#BD2E54;       /* 차단 · 반대 방향 ⊣ */
+  --inh-soft:#F6E0E6;
+  --ind:#93640E;       /* 간접 · 조건부 ⇢ */
+  --ind-soft:#F3E8D0;
+  --grade-d:#6E6578;
+  --shadow:0 1px 2px rgba(19,34,42,.06);
+  --f-sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E161A; --surface:#152127; --surface-2:#1B2830; --ink:#E2EBEE; --muted:#97A7AE; --line:#2B3C44;
+    --caf:#9599F4; --caf-soft:#262A55; --act:#47C4B5; --act-soft:#123A36; --inh:#F07894; --inh-soft:#45202B;
+    --ind:#E2AE4E; --ind-soft:#3D3018; --grade-d:#AEA4B8; --shadow:none; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E161A; --surface:#152127; --surface-2:#1B2830; --ink:#E2EBEE; --muted:#97A7AE; --line:#2B3C44;
+  --caf:#9599F4; --caf-soft:#262A55; --act:#47C4B5; --act-soft:#123A36; --inh:#F07894; --inh-soft:#45202B;
+  --ind:#E2AE4E; --ind-soft:#3D3018; --grade-d:#AEA4B8; --shadow:none; color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:28px 72px}
+.mono,.num{font-family:var(--f-mono)}
+.num{font-variant-numeric:tabular-nums}
+h1,h2,h3{text-wrap:balance;margin:0}
+p{margin:0}
+a{color:var(--caf)}
+:focus-visible{outline:2px solid var(--caf);outline-offset:2px}
+button{font:inherit;color:inherit}
+
+/* Hero */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:end;padding-bottom:24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.hero h1{font-size:clamp(30px,4.2vw,44px);line-height:1.12;letter-spacing:-.025em;font-weight:700;margin:8px 0 12px}
+.hero .lede{max-width:64ch;color:var(--muted);font-size:15.5px}
+.hero .lede strong{color:var(--ink);font-weight:600}
+.molecule{margin:0;display:grid;justify-items:center;gap:6px}
+.molecule svg{width:200px;max-width:100%;height:auto}
+.molecule figcaption{font-family:var(--f-mono);font-size:11px;color:var(--muted);text-align:center;line-height:1.4}
+.mol-bond{stroke:var(--ink);stroke-width:1.6;stroke-linecap:round;fill:none}
+.mol-mask{fill:var(--bg)}
+.mol-atom{font-family:var(--f-mono);font-size:12px;font-weight:600;fill:var(--ink);text-anchor:middle;dominant-baseline:central}
+.mol-atom.n{fill:var(--caf)}
+.mol-atom.o{fill:var(--inh)}
+.mol-me{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted);dominant-baseline:central}
+@media (max-width:720px){.hero{grid-template-columns:minmax(0,1fr)}.molecule{justify-items:start}}
+
+/* Sections */
+section{margin-top:40px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 24px;margin-bottom:14px}
+.sec-head h2{font-size:21px;letter-spacing:-.01em;font-weight:700}
+.sec-head h2 .step{font-family:var(--f-mono);font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.06em;margin-right:10px;vertical-align:2px}
+.sec-head p{color:var(--muted);font-size:13.5px;max-width:72ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+
+/* Exposure */
+.exposure{display:grid;grid-template-columns:minmax(0,350px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:940px){.exposure{grid-template-columns:minmax(0,1fr)}}
+.controls{padding:18px;display:grid;gap:18px}
+.field{display:grid;gap:7px}
+.lab,.field legend{font-size:12.5px;font-weight:600;color:var(--muted);letter-spacing:.02em;padding:0}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+.lab-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.lab-row output{font-family:var(--f-mono);font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--caf);margin:0}
+select{font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:5px 8px}
+.dose-list{display:grid;gap:8px}
+.dose-row{display:grid;grid-template-columns:auto minmax(0,1fr) 62px;gap:10px;align-items:center}
+.dose-row output{font-family:var(--f-mono);font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+.total-line{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--muted);padding-top:2px}
+.total-line .num{color:var(--ink)}
+.flag{font-size:12.5px;line-height:1.5;border-radius:7px;padding:7px 10px;background:var(--ind-soft);color:var(--ink)}
+.seg{display:flex;flex-wrap:wrap;gap:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:3px}
+.seg label{flex:1 1 0;min-width:max-content;cursor:pointer;position:relative}
+.seg input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.seg span{display:block;text-align:center;padding:5px 8px;border-radius:6px;font-size:13px;color:var(--muted);transition:background .15s,color .15s}
+.seg input:checked+span{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 0 0 1px var(--line)}
+.seg input:focus-visible+span{outline:2px solid var(--caf);outline-offset:1px}
+.checks{display:grid;gap:6px}
+.checks label{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.45;cursor:pointer}
+.checks input{accent-color:var(--caf);margin-top:3px;flex:none}
+.checks small{color:var(--muted);font-size:12px}
+.hint{font-size:12px;color:var(--muted);line-height:1.5}
+.btn-row{display:flex;flex-wrap:wrap;gap:8px}
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:7px;padding:6px 11px;font-size:13px;cursor:pointer}
+.btn:hover{border-color:var(--caf);color:var(--caf)}
+
+.pk{display:grid;gap:16px;min-width:0}
+.readouts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+@media (max-width:640px){.readouts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ro{background:var(--surface);padding:12px 14px;display:grid;gap:2px;min-width:0}
+.ro .k{font-size:12px;color:var(--muted)}
+.ro .v{font-family:var(--f-mono);font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.ro .v small{font-size:13px;font-weight:500;color:var(--muted);margin-left:3px}
+.ro .s{font-size:11.5px;color:var(--muted);font-family:var(--f-mono)}
+.chart-card{padding:14px 14px 10px}
+.chart-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;align-items:baseline;margin-bottom:6px}
+.chart-top h3{font-size:14.5px;font-weight:600}
+.chart-top .cap{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+#pk-svg{width:100%;height:auto;display:block;cursor:crosshair}
+.ax{stroke:var(--line);stroke-width:1}
+.ax-t{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.pk-area{fill:var(--caf);fill-opacity:.12}
+.pk-line{fill:none;stroke:var(--caf);stroke-width:2.2;stroke-linejoin:round}
+.ki-line{stroke-dasharray:4 4;stroke-width:1.2;fill:none}
+.ki-a2a{stroke:var(--act)}
+.ki-a1{stroke:var(--ind)}
+.ki-t{font-family:var(--f-mono);font-size:10.5px}
+.ki-t.a2a{fill:var(--act)}
+.ki-t.a1{fill:var(--ind)}
+.obs-line{stroke:var(--ink);stroke-width:1.4}
+.obs-dot{fill:var(--surface);stroke:var(--ink);stroke-width:2}
+.obs-pill{fill:var(--ink)}
+.obs-pill-t{font-family:var(--f-mono);font-size:10.5px;fill:var(--surface);text-anchor:middle;dominant-baseline:central}
+.bed-line{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:2 3}
+.bed-t{font-family:var(--f-sans);font-size:11px;fill:var(--muted)}
+.dose-mk{fill:var(--caf)}
+.dose-t{font-family:var(--f-mono);font-size:10px;fill:var(--caf)}
+.occ{padding:14px;display:grid;gap:10px}
+.occ h3{font-size:14.5px;font-weight:600}
+.occ-row{display:grid;grid-template-columns:96px minmax(0,1fr) 56px;gap:12px;align-items:center;font-size:13px}
+.occ-row .name{font-weight:600}
+.occ-row .name small{display:block;font-family:var(--f-mono);font-size:10.5px;color:var(--muted);font-weight:400}
+.track{height:10px;border-radius:5px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
+.track>i{display:block;height:100%;background:var(--caf);border-radius:5px;transition:width .25s}
+.occ-row .pct{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.occ-row.faint{color:var(--muted)}
+.occ-row.faint .track{background:repeating-linear-gradient(45deg,var(--surface-2) 0 5px,var(--line) 5px 6px)}
+.assume{font-size:12px;color:var(--muted);line-height:1.6}
+.assume summary{cursor:pointer;color:var(--ink);font-weight:600;font-size:12.5px}
+.assume ul{margin:8px 0 0;padding-left:18px;display:grid;gap:3px}
+
+/* Map */
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.legend svg{flex:none}
+.map-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:10px 6px 4px}
+#map-svg{display:block;width:100%;min-width:960px;height:auto}
+.col-h{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;fill:var(--muted);text-anchor:middle}
+.node{cursor:pointer}
+.node rect.box{fill:var(--surface);stroke:var(--line);stroke-width:1.2;transition:stroke .15s}
+.node.k-drug rect.box{fill:var(--caf-soft);stroke:var(--caf)}
+.node.k-rec rect.box{stroke:var(--caf)}
+.node.k-eff rect.box{fill:var(--surface-2)}
+.node.faint rect.box{stroke-dasharray:4 3}
+.node:hover rect.box{stroke:var(--ink)}
+.node.sel rect.box{stroke:var(--ink);stroke-width:2.2}
+.node:focus{outline:none}
+.node:focus-visible rect.box{stroke:var(--caf);stroke-width:2.6}
+.n-lab{font-family:var(--f-sans);font-size:13px;font-weight:600;fill:var(--ink)}
+.n-sub{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.n-bar{fill:var(--act)}
+.k-rec .n-bar,.k-drug .n-bar{fill:var(--caf)}
+.n-bar-bg{fill:var(--line);opacity:.6}
+.edge{fill:none;transition:opacity .2s}
+.e-act{stroke:var(--act)}
+.e-block,.e-inh{stroke:var(--inh)}
+.e-ind{stroke:var(--ind);stroke-dasharray:5 4}
+.e-faint{opacity:.45;stroke-dasharray:3 4}
+.mk-act{fill:var(--act)}
+.mk-ind{fill:var(--ind)}
+.mk-tee{fill:var(--inh)}
+.dim{opacity:.13}
+.node.dim{opacity:.28}
+
+.detail{margin-top:14px;padding:18px;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px 28px}
+@media (max-width:820px){.detail{grid-template-columns:minmax(0,1fr)}}
+.d-kind{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.detail h3{font-size:20px;font-weight:700;margin:4px 0 8px;letter-spacing:-.01em}
+.d-lead{color:var(--ink);max-width:62ch}
+.d-steps{margin:12px 0 0;padding-left:20px;display:grid;gap:6px;max-width:66ch;font-size:14px}
+.d-steps li::marker{color:var(--muted);font-family:var(--f-mono);font-size:12px}
+.d-side{display:grid;gap:12px;align-content:start;min-width:0}
+.d-now{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:13px;color:var(--muted)}
+.d-now b{color:var(--ink);font-family:var(--f-mono);font-weight:600}
+.caveat{font-size:13px;line-height:1.6;background:var(--ind-soft);border-radius:8px;padding:10px 12px}
+.caveat b{font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px}
+.chips .chips-k{color:var(--muted);margin-right:2px;min-width:30px}
+.chip{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:2px 10px;font-size:12.5px;cursor:pointer}
+.chip:hover{border-color:var(--caf);color:var(--caf)}
+.refs-inline{font-size:12.5px;color:var(--muted);display:grid;gap:3px}
+.refs-inline a{text-decoration:none}
+.refs-inline a:hover{text-decoration:underline}
+.grade{display:inline-grid;place-items:center;min-width:22px;height:20px;padding:0 5px;border-radius:5px;font-family:var(--f-mono);font-size:11.5px;font-weight:600;color:var(--surface)}
+.grade.A{background:var(--act)}
+.grade.B{background:var(--caf)}
+.grade.C{background:var(--ind)}
+.grade.D{background:var(--grade-d)}
+.grade.N{background:var(--muted)}
+
+/* Effect cards */
+.banner{margin-bottom:12px;font-size:13.5px;padding:10px 14px;border-radius:8px;background:var(--inh-soft);border:1px solid var(--inh)}
+.cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+@media (max-width:1080px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 13px;display:grid;gap:8px;align-content:start;cursor:pointer;min-width:0}
+.card:hover{border-color:var(--caf)}
+.card.sel{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.card-top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.card-top h3{font-size:14px;font-weight:600}
+.lvl{font-size:13px;font-weight:600}
+.meter{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.meter i{height:6px;border-radius:2px;background:var(--surface-2);border:1px solid var(--line)}
+.meter i.on{background:var(--act);border-color:var(--act)}
+.meter.var i.on{background:var(--ind);border-color:var(--ind)}
+.card .path{font-size:12px;color:var(--muted);line-height:1.5}
+.card .note{font-size:11.5px;color:var(--muted);font-family:var(--f-mono)}
+.bal{display:grid;gap:4px;font-size:11.5px;color:var(--muted)}
+.bal-row{display:grid;grid-template-columns:54px minmax(0,1fr);gap:8px;align-items:center}
+.bal-row .track{height:7px}
+.bal-row.up .track>i{background:var(--act)}
+.bal-row.down .track>i{background:var(--inh)}
+.qual-note{margin-top:10px;font-size:12px;color:var(--muted)}
+.other{margin-top:16px}
+.other h3{font-size:15px;font-weight:600;margin-bottom:8px}
+
+/* Tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600;background:var(--surface-2);letter-spacing:.02em}
+tr:last-child td{border-bottom:0}
+td .grade{vertical-align:1px}
+
+/* Tabs */
+.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.tab{border:0;background:none;padding:9px 14px;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink);font-weight:600;border-bottom-color:var(--caf)}
+.tab:hover{color:var(--ink)}
+.tabpanel{display:grid;gap:16px}
+.prose{max-width:72ch;display:grid;gap:10px;font-size:14.5px}
+.prose .muted{color:var(--muted)}
+
+.states{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:900px){.states{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.states{grid-template-columns:minmax(0,1fr)}}
+.state{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:13px;display:grid;gap:7px;align-content:start}
+.state.on{border-color:var(--caf);box-shadow:0 0 0 1px var(--caf)}
+.state .tag{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.06em;color:var(--caf);text-transform:uppercase;min-height:14px}
+.state h4{margin:0;font-size:14.5px;font-weight:600}
+.state p{font-size:13px;color:var(--muted)}
+.state .dir{font-size:13px;font-weight:600;color:var(--ink)}
+.stat-pair{display:flex;flex-wrap:wrap;gap:10px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--surface);min-width:150px}
+.stat .v{font-family:var(--f-mono);font-size:20px;font-weight:600}
+.stat .k{font-size:12px;color:var(--muted)}
+
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}
+.chain span{background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:5px 10px}
+.chain i{font-style:normal;color:var(--muted);font-family:var(--f-mono)}
+
+.tl{padding:16px;display:grid;gap:12px}
+.tl-rows{display:grid;gap:8px}
+.tl-row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;align-items:center;font-size:12.5px}
+.tl-row .k{color:var(--muted)}
+.tl-track{position:relative;height:16px;background:var(--surface-2);border-radius:4px}
+.tl-track b{position:absolute;top:0;bottom:0;border-radius:4px}
+.tl-axis{position:relative;height:18px;margin-left:132px}
+.tl-axis span{position:absolute;transform:translateX(-50%);font-family:var(--f-mono);font-size:10.5px;color:var(--muted)}
+.tl-cursor{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);border-radius:1px}
+@media (max-width:520px){.tl-row{grid-template-columns:84px minmax(0,1fr)}.tl-axis{margin-left:96px}}
+.phase-now{font-size:14px}
+.phase-now b{font-weight:600}
+
+.hc{padding:16px;display:grid;gap:10px}
+.hc-row{display:grid;grid-template-columns:190px minmax(0,1fr);gap:12px;align-items:center;font-size:13px}
+.hc-row .k b{font-weight:600;display:block}
+.hc-row .k small{color:var(--muted);font-size:11.5px}
+.hc-track{position:relative;height:18px;border-radius:4px;background:var(--surface-2)}
+.hc-track .grid-l{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
+.hc-track b{position:absolute;top:3px;bottom:3px;border-radius:3px}
+.hc-track .mark{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.hc-axis{position:relative;height:16px;margin-left:202px}
+.hc-axis span{position:absolute;transform:translateX(-50%);font-family:var(--f-mono);font-size:10.5px;color:var(--muted);white-space:nowrap}
+@media (max-width:560px){.hc-row{grid-template-columns:minmax(0,1fr)}.hc-axis{margin-left:0}}
+
+.grades{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:820px){.grades{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.gcard{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:12px;display:grid;gap:6px;font-size:13px}
+.gcard .ex{color:var(--muted);font-size:12px}
+.reflist{margin:0;padding-left:22px;display:grid;gap:5px;font-size:13px;max-width:90ch}
+.reflist a{text-decoration:none}
+.reflist a:hover{text-decoration:underline}
+
+footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);display:grid;gap:6px;max-width:90ch}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div>
+    <div class="eyebrow">Caffeine pharmacodynamics · adenosine receptor antagonism</div>
+    <h1>카페인 기전 지도</h1>
+    <p class="lede">카페인은 <strong>아데노신 수용체의 경쟁적 길항제</strong>입니다. 각성, 심박 변화, 혈압 상승, 손떨림, 통증 변화는 이 하나의 출발점이 서로 다른 신경회로와 장기를 거쳐 나타나는 결과입니다. 섭취 조건을 바꾸면 혈중 농도, 수용체 점유, 경로별 반응과 근거 수준이 함께 바뀝니다.</p>
+  </div>
+  <figure class="molecule" aria-label="카페인 구조식">
+    <svg viewBox="-70 -64 150 128" role="img" aria-label="카페인(1,3,7-trimethylxanthine) 골격 구조식">
+      <!-- 6원환: N1(v5) C2(v4) N3(v3) C4(v2) C5(v1) C6(v0) -->
+      <path class="mol-bond" d="M-22.5,-13 L-22.5,13 L0,26 L22.5,13 L22.5,-13 L0,-26 Z"/>
+      <path class="mol-bond" d="M18.3,-8.5 L18.3,8.5"/>
+      <!-- 5원환: C5 N7 C8 N9 C4 -->
+      <path class="mol-bond" d="M22.5,-13 L47.2,-21 L62.5,0 L47.2,21 L22.5,13"/>
+      <path class="mol-bond" d="M57.6,2.4 L47.6,16"/>
+      <!-- C6=O -->
+      <path class="mol-bond" d="M-2.2,-26 L-2.2,-43 M2.2,-26 L2.2,-43"/>
+      <!-- C2=O -->
+      <path class="mol-bond" d="M-21.4,15 L-38.3,24.8 M-23.6,11 L-40.5,20.8"/>
+      <!-- 메틸 -->
+      <path class="mol-bond" d="M-22.5,-13 L-40,-23"/>
+      <path class="mol-bond" d="M0,26 L0,44"/>
+      <path class="mol-bond" d="M47.2,-21 L55,-40"/>
+      <!-- 원자 라벨 -->
+      <circle class="mol-mask" cx="-22.5" cy="-13" r="7"/><text class="mol-atom n" x="-22.5" y="-13">N</text>
+      <circle class="mol-mask" cx="0" cy="26" r="7"/><text class="mol-atom n" x="0" y="26">N</text>
+      <circle class="mol-mask" cx="47.2" cy="-21" r="7"/><text class="mol-atom n" x="47.2" y="-21">N</text>
+      <circle class="mol-mask" cx="47.2" cy="21" r="7"/><text class="mol-atom n" x="47.2" y="21">N</text>
+      <circle class="mol-mask" cx="0" cy="-49" r="7"/><text class="mol-atom o" x="0" y="-49">O</text>
+      <circle class="mol-mask" cx="-44.5" cy="25.5" r="7"/><text class="mol-atom o" x="-44.5" y="25.5">O</text>
+      <text class="mol-me" x="-43" y="-26" text-anchor="end">H₃C</text>
+      <text class="mol-me" x="0" y="52" text-anchor="middle">CH₃</text>
+      <text class="mol-me" x="56" y="-48" text-anchor="middle">CH₃</text>
+    </svg>
+    <figcaption>1,3,7-trimethylxanthine<br>C₈H₁₀N₄O₂ · 194.19 g/mol</figcaption>
+  </figure>
+</header>
+
+<!-- 1. 노출 -->
+<section id="exposure" aria-labelledby="h-exp">
+  <div class="sec-head">
+    <h2 id="h-exp"><span class="step">01</span>노출 조건과 혈중 농도</h2>
+    <p>예시 하루가 입력되어 있습니다. 섭취량·시각·개인 요인을 바꾸거나 그래프를 눌러 관찰 시각을 옮겨 보세요.</p>
+  </div>
+  <div class="exposure">
+    <form class="panel controls" id="controls" onsubmit="return false">
+      <div class="field">
+        <div class="lab">섭취 기록 (오늘)</div>
+        <div class="dose-list" id="dose-list"></div>
+        <div class="total-line"><span>하루 합계</span><span><span class="num" id="total-out">250</span> / 400 mg</span></div>
+        <div class="flag" id="cap-flag" hidden>이 도구는 일반 성인 기준 하루 400 mg(EFSA) 범위 안에서만 계산합니다.</div>
+        <div class="flag" id="preg-flag" hidden>EFSA는 임신·수유 중 하루 200 mg 이하를 제시합니다.</div>
+      </div>
+
+      <div class="field">
+        <div class="lab-row"><label class="lab" for="obs">관찰 시각</label><output id="obs-out" for="obs">15:00</output></div>
+        <input type="range" id="obs" min="0" max="24" step="0.25" value="9">
+      </div>
+
+      <div class="field">
+        <div class="lab-row"><label class="lab" for="bed">취침 시각</label>
+          <select id="bed"></select></div>
+      </div>
+
+      <div class="field">
+        <div class="lab-row"><label class="lab" for="weight">체중</label><output id="weight-out" for="weight">65 kg</output></div>
+        <input type="range" id="weight" min="40" max="120" step="1" value="65">
+      </div>
+
+      <fieldset class="field">
+        <legend>평소 섭취 습관</legend>
+        <div class="seg">
+          <label><input type="radio" name="habit" id="habit-none" value="none"><span>거의 안 마심</span></label>
+          <label><input type="radio" name="habit" id="habit-some" value="some"><span>주 몇 회</span></label>
+          <label><input type="radio" name="habit" id="habit-daily" value="daily" checked><span>매일</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>개인 민감도</legend>
+        <div class="seg">
+          <label><input type="radio" name="sens" id="sens-low" value="low"><span>낮음</span></label>
+          <label><input type="radio" name="sens" id="sens-normal" value="normal" checked><span>보통</span></label>
+          <label><input type="radio" name="sens" id="sens-high" value="high"><span>높음</span></label>
+        </div>
+        <p class="hint">ADORA2A 유전형, 불안 성향 등으로 같은 농도에서도 반응이 달라집니다.</p>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>기본 대사 속도 (CYP1A2)</legend>
+        <div class="seg">
+          <label><input type="radio" name="metab" id="metab-fast" value="fast"><span>빠름</span></label>
+          <label><input type="radio" name="metab" id="metab-normal" value="normal" checked><span>보통</span></label>
+          <label><input type="radio" name="metab" id="metab-slow" value="slow"><span>느림</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>반감기를 바꾸는 요인</legend>
+        <div class="checks">
+          <label><input type="checkbox" id="f-smoke"><span>흡연 <small>CYP1A2 유도, 제거 촉진</small></span></label>
+          <label><input type="checkbox" id="f-oc"><span>경구피임약 복용 <small>제거 감소</small></span></label>
+          <label><input type="checkbox" id="f-preg"><span>임신 후기 <small>제거 크게 감소</small></span></label>
+          <label><input type="checkbox" id="f-inhmod"><span>중등도 CYP1A2 억제제 <small>예: ciprofloxacin</small></span></label>
+          <label><input type="checkbox" id="f-inhstrong"><span>강한 CYP1A2 억제제 <small>예: fluvoxamine</small></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>그 밖의 상태</legend>
+        <div class="checks">
+          <label><input type="checkbox" id="f-sleepdep"><span>수면 부족</span></label>
+          <label><input type="checkbox" id="f-analgesic"><span>진통제(아세트아미노펜·이부프로펜 등)와 함께 복용</span></label>
+        </div>
+      </fieldset>
+
+      <div class="btn-row">
+        <button type="button" class="btn" id="btn-wd">중단 시나리오 보기</button>
+        <button type="button" class="btn" id="btn-reset">예시로 되돌리기</button>
+      </div>
+    </form>
+
+    <div class="pk">
+      <div class="readouts" id="readouts"></div>
+      <div class="panel chart-card">
+        <div class="chart-top">
+          <h3>혈중 카페인 농도 (모체 화합물)</h3>
+          <span class="cap" id="pk-cap"></span>
+        </div>
+        <svg id="pk-svg" viewBox="0 0 680 250" role="img" aria-label="시간에 따른 혈중 카페인 농도 곡선"></svg>
+      </div>
+      <div class="panel occ">
+        <h3>아데노신 수용체 점유 지수 <span class="hint" id="occ-time"></span></h3>
+        <div id="occ-rows"></div>
+        <details class="assume">
+          <summary>모델 가정 보기</summary>
+          <ul>
+            <li>1구획 경구 흡수 모델: 흡수속도상수 3 h⁻¹(최고 농도 약 1시간), 분포용적 0.65 L/kg, 생체이용률 약 100%, 분자량 194.19.</li>
+            <li>반감기: 기본 3.5 / 5 / 7시간에 요인 배수를 곱합니다. 흡연 ×0.6, 경구피임약 ×1.8, 임신 후기 ×2.5, 중등도 억제제 ×1.5, 강한 억제제 ×6. 문헌 보고 범위를 반올림한 교육용 근사입니다.</li>
+            <li>점유 지수 = C / (C + Ki). Ki는 A1 12 µM, A2A 8 µM의 대표값입니다. 내인성 아데노신과의 경쟁, 단백 결합, 활성 대사체 paraxanthine, 전날 섭취분은 반영하지 않습니다.</li>
+            <li>반응 단계(미미·약함·중간·뚜렷)는 점유 지수에 내성·민감도·수면 상태를 곱해 만든 정성 지표입니다. 심박수나 떨림 강도를 예측하는 검증된 공식은 없으며, 이 값은 측정치나 개인 예측치가 아닙니다.</li>
+          </ul>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. 경로 지도 -->
+<section id="map" aria-labelledby="h-map">
+  <div class="sec-head">
+    <h2 id="h-map"><span class="step">02</span>작용 경로 지도</h2>
+    <div class="legend" aria-label="범례">
+      <span><svg width="30" height="10" aria-hidden="true"><line x1="0" y1="5" x2="24" y2="5" stroke="var(--inh)" stroke-width="2"/><rect x="24" y="0" width="2.5" height="10" fill="var(--inh)"/></svg>차단 · 반대 방향</span>
+      <span><svg width="30" height="10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--act)" stroke-width="2"/><path d="M22,1 L30,5 L22,9 Z" fill="var(--act)"/></svg>이어지는 변화</span>
+      <span><svg width="30" height="10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--ind)" stroke-width="2" stroke-dasharray="5 4"/><path d="M22,1 L30,5 L22,9 Z" fill="var(--ind)"/></svg>간접 · 조건부</span>
+      <span>선 굵기 = 현재 신호 크기</span>
+    </div>
+  </div>
+  <div class="panel map-wrap">
+    <svg id="map-svg" viewBox="0 0 1080 630" role="group" aria-label="카페인에서 생리 반응까지의 인과 경로 그래프"></svg>
+  </div>
+  <div class="panel detail" id="detail" aria-live="polite"></div>
+</section>
+
+<!-- 3. 반응 -->
+<section id="effects" aria-labelledby="h-eff">
+  <div class="sec-head">
+    <h2 id="h-eff"><span class="step">03</span>관찰 시각의 예상 반응</h2>
+    <p>카드를 누르면 지도에서 해당 반응의 상류 경로가 강조됩니다. 수면 방해는 취침 시각의 농도로 계산합니다.</p>
+  </div>
+  <div class="banner" id="wd-banner" hidden>매일 마시던 사람이 오늘 섭취하지 않은 상태입니다. 카페인 작용은 없지만 금단 증상(두통, 피로, 졸음, 집중력 저하)이 나타날 수 있습니다. 아래 금단 탭을 참고하세요.</div>
+  <div class="cards" id="cards"></div>
+  <p class="qual-note">단계는 정성 지표이며 측정값이 아닙니다. 근거 등급 A–D의 뜻은 아래 근거 등급 탭에 있습니다.</p>
+
+  <div class="other">
+    <h3>그 밖의 작용</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>생리 기능</th><th>핵심 기전</th><th>결과와 주의점</th><th>근거</th></tr></thead>
+        <tbody>
+          <tr><td>위산 분비</td><td>위 벽세포의 쓴맛 수용체(TAS2R) 신호</td><td>섭취 방식에 따라 반응이 다름 (Liszt 2017)</td><td><span class="grade B">B</span></td></tr>
+          <tr><td>장운동</td><td>커피의 신경·위장관 호르몬 반응</td><td>디카페인 커피도 대장 운동을 촉진하므로 전부 카페인 탓은 아님 (Rao 1998)</td><td><span class="grade B">B</span></td></tr>
+          <tr><td>운동 수행</td><td>A1·A2A 길항 → 중추 피로감·운동자각도 감소</td><td>지구력 등 일부 수행 개선. 연구 용량 약 3–6 mg/kg (Guest 2021). 현재 설정: <b class="num" id="mgkg-inline">–</b></td><td><span class="grade A">A</span></td></tr>
+          <tr><td>스트레스 호르몬</td><td>교감-부신수질계, HPA축 반응 조절</td><td>아드레날린·코르티솔 반응 증폭 가능, 상습자에서 약화</td><td><span class="grade B">B</span></td></tr>
+          <tr><td>혈당</td><td>카테콜아민, 간 당생성·글리코겐분해, 인슐린 감수성 변화</td><td>급성 혈당 반응 변화 가능, 연구 간 차이 큼</td><td><span class="grade C">C</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 4. 심화 -->
+<section id="deep" aria-labelledby="h-deep">
+  <div class="sec-head">
+    <h2 id="h-deep"><span class="step">04</span>심화</h2>
+    <p>통증, 금단, 고농도 실험 기전, 약물 상호작용은 별도 분기로 다룹니다.</p>
+  </div>
+  <div class="tabs" role="tablist" aria-label="심화 주제">
+    <button class="tab" role="tab" id="tab-pain" aria-controls="panel-pain" aria-selected="true">통증 4가지 상태</button>
+    <button class="tab" role="tab" id="tab-wd" aria-controls="panel-wd" aria-selected="false">금단</button>
+    <button class="tab" role="tab" id="tab-hc" aria-controls="panel-hc" aria-selected="false">고농도 실험 기전</button>
+    <button class="tab" role="tab" id="tab-ix" aria-controls="panel-ix" aria-selected="false">약물 상호작용</button>
+    <button class="tab" role="tab" id="tab-ev" aria-controls="panel-ev" aria-selected="false">근거 등급 · 참고문헌</button>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="panel-pain" aria-labelledby="tab-pain">
+    <div class="prose">
+      <p>카페인은 모든 통증을 키우지도, 모든 통증을 줄이지도 않습니다. 통증의 종류, 수용체 분포, 섭취 시점, 반복 복용 여부, 함께 먹은 진통제에 따라 방향이 갈립니다. 현재 설정에 해당하는 상태가 강조됩니다.</p>
+    </div>
+    <div class="states" id="pain-states"></div>
+    <div class="prose">
+      <p><b>통증을 키울 수 있는 경로.</b> 척수 후각 등에서 아데노신은 A1을 통해 일차 구심섬유의 Ca²⁺ 유입과 흥분성 전달물질 방출을 줄입니다(항통각). 카페인이 A1을 막으면 이 억제가 약해져 특정 상황에서 통각 전달이 상대적으로 늘 수 있습니다. 수용체·회로 수준의 근거이며 사람에서 일관된 통증 증가로 확인된 것은 아닙니다.</p>
+      <p><b>진통을 도울 수 있는 경로.</b> 통각 회로의 아데노신 신호 조절, 두통에서의 뇌혈관 수축, 각성과 통증 인지의 변화가 거론됩니다. 염증 환경에서는 A2A·A2B 신호가 통증 촉진에 관여해 그 차단이 완화 방향으로 작용할 수 있습니다. 진통 보조 효과를 하나의 분자기전으로 확정하기는 어렵습니다.</p>
+    </div>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="panel-wd" aria-labelledby="tab-wd" hidden>
+    <div class="prose">
+      <p>카페인을 반복해서 먹으면 아데노신 신호계가 그 상태에 맞춰 적응합니다. 갑자기 끊으면 가려져 있던 아데노신 작용이 상대적으로 커집니다. 인체에서 적응의 정확한 분자 수준은 완전히 규명되지 않았습니다.</p>
+    </div>
+    <div class="chain" aria-label="금단 기전 연쇄">
+      <span>반복 섭취</span><i>→</i><span>아데노신 신호계 보상성 적응</span><i>→</i><span>갑작스러운 중단</span><i>→</i><span>상대적 아데노신 작용 증가</span><i>→</i><span>뇌혈관 확장 · 뇌혈류 증가 · EEG 서파 증가</span><i>→</i><span>두통 · 피로 · 졸음 · 집중력 저하</span>
+    </div>
+    <div class="panel tl">
+      <div class="lab-row"><label class="lab" for="wd-h">마지막 섭취 후 경과</label><output id="wd-out" class="num" for="wd-h">30시간</output></div>
+      <input type="range" id="wd-h" min="0" max="216" step="1" value="30">
+      <div class="tl-rows" id="tl-rows"></div>
+      <div class="tl-axis" id="tl-axis"></div>
+      <p class="phase-now" id="phase-now"></p>
+    </div>
+    <div class="prose">
+      <p class="muted">발현 12–24시간, 최고조 20–51시간, 지속 2–9일은 Juliano &amp; Griffiths(2004)의 체계적 고찰 범위입니다. 하루 약 100 mg 정도의 습관적 섭취에서도 금단이 보고되며, 두통은 대략 절반 정도에서 나타났습니다. 중단 시 뇌혈류 속도 증가와 EEG 변화는 Sigmon 등(2009)이 측정했습니다.</p>
+    </div>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="panel-hc" aria-labelledby="tab-hc" hidden>
+    <div class="prose">
+      <p>아래 기전은 세포·조직·동물 실험에서 쓰는 농도에서 확인된 것입니다. 하루 400 mg 이내의 일반 섭취에서 도달하는 혈중 농도와는 수 배에서 수백 배 차이가 납니다. 그래서 일반 섭취 후의 각성, 불안, 손떨림을 이 기전으로 설명하지 않습니다.</p>
+    </div>
+    <div class="panel hc">
+      <div id="hc-rows"></div>
+      <div class="hc-axis" id="hc-axis"></div>
+      <p class="hint">로그 축 (µM). 막대는 문헌에 보고된 대략적인 연구 농도 범위이며, 작용이 시작되는 절대 역치가 아닙니다. 세로선은 현재 설정의 오늘 최고 혈중 농도입니다.</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>표적</th><th>무엇을 하는가</th><th>일반 섭취와의 관계</th><th>근거</th></tr></thead>
+        <tbody>
+          <tr><td>Phosphodiesterase(PDE)</td><td>cAMP·cGMP 분해 효소. 억제되면 세포 내 cAMP가 덜 분해되어 PKA 신호가 커짐</td><td>대체로 100 µM 이상 필요. 일상 섭취의 핵심 기전으로 쓰지 않음</td><td><span class="grade D">D</span></td></tr>
+          <tr><td>Ryanodine 수용체(RyR)</td><td>근소포체·소포체의 Ca²⁺ 방출 통로. 근육 생리 실험에서 칼슘 방출을 일으키는 도구로 쓰임</td><td>mM 수준. 일반 섭취 후 손떨림의 설명이 아님</td><td><span class="grade D">D</span></td></tr>
+          <tr><td>세포 내 Ca²⁺ 조절</td><td>세포질 칼슘 처리 변화</td><td>대체로 500 µM 이상</td><td><span class="grade D">D</span></td></tr>
+          <tr><td>GABA<sub>A</sub> 조절 부위</td><td>벤조디아제핀 결합 부위 등 일부 조절 부위 억제</td><td>매우 높은 농도. 일반 섭취 후 불안의 주 기전이 아님</td><td><span class="grade D">D</span></td></tr>
+          <tr><td>MAO-A</td><td>모노아민 분해 효소 억제</td><td>mM 수준</td><td><span class="grade D">D</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="panel-ix" aria-labelledby="tab-ix" hidden>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>병용 약물·물질</th><th>상호작용</th><th>유형</th><th>이 도구에서</th></tr></thead>
+        <tbody>
+          <tr><td>Fluvoxamine</td><td>CYP1A2 강한 억제 → 카페인 제거 감소, 반감기 약 5시간에서 약 31시간으로 연장 보고 (Jeppesen 1996)</td><td>약동학</td><td>강한 억제제 체크</td></tr>
+          <tr><td>Ciprofloxacin</td><td>CYP1A2 억제 → 카페인 노출 증가 가능</td><td>약동학</td><td>중등도 억제제 체크</td></tr>
+          <tr><td>흡연</td><td>CYP1A2 유도 → 제거 촉진. 금연하면 같은 섭취량에서 농도가 오를 수 있음</td><td>약동학</td><td>흡연 체크</td></tr>
+          <tr><td>경구피임약 · 임신</td><td>카페인 제거 감소 → 반감기 연장</td><td>약동학</td><td>해당 항목 체크</td></tr>
+          <tr><td>슈도에페드린 · 에페드린 등</td><td>자극, 두근거림, 불면 같은 약력학적 부작용이 겹칠 수 있음</td><td>약력학</td><td>모델 밖</td></tr>
+          <tr><td>Theophylline</td><td>같은 메틸잔틴 계열로 약리작용이 겹침</td><td>약력학</td><td>모델 밖</td></tr>
+          <tr><td>Adenosine · regadenoson</td><td>카페인이 아데노신 수용체를 가로막아 약물부하 심근관류검사의 약효를 떨어뜨릴 수 있음. 검사 전 섭취 제한 지침이 있음</td><td>약력학</td><td>모델 밖</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="panel-ev" aria-labelledby="tab-ev" hidden>
+    <div class="grades">
+      <div class="gcard"><div><span class="grade A">A</span></div><b>사람 대상 임상 연구로 효과 확인</b><span class="ex">각성 증가, 수면 방해, 금단성 두통, 진통제 보조</span></div>
+      <div class="gcard"><div><span class="grade B">B</span></div><b>사람 연구가 있으나 반응이 가변적</b><span class="ex">심박·혈압 변화, 손떨림, 불안, 이뇨</span></div>
+      <div class="gcard"><div><span class="grade C">C</span></div><b>기전 근거는 있으나 인체 결과 불확실</b><span class="ex">특정 통각 회로의 증폭, A2B·A3의 기여</span></div>
+      <div class="gcard"><div><span class="grade D">D</span></div><b>주로 고농도 세포·동물 실험</b><span class="ex">RyR 직접 활성화, PDE 억제</span></div>
+    </div>
+    <p class="hint">이 등급은 이 프로그램을 위한 분류이며, GRADE 같은 공식 임상근거 평가체계를 그대로 적용한 것이 아닙니다.</p>
+    <ol class="reflist" id="reflist"></ol>
+    <p class="hint">링크는 PubMed 또는 Google Scholar 검색으로 연결됩니다. 원문과 서지 정보는 연결된 검색 결과에서 확인하세요.</p>
+  </div>
+</section>
+
+<footer>
+  <p>교육용 시뮬레이션입니다. 개인의 혈중 농도나 증상을 예측하지 않으며 의학적 조언을 대신하지 않습니다. 두근거림, 흉통, 심한 불안 같은 증상이 있으면 의료진과 상담하세요.</p>
+  <p>모델 범위: 일반 성인의 일상 섭취(하루 400 mg 이내). 고용량 섭취와 중독은 이 모델로 설명하지 않습니다.</p>
+</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const MW=194.19, KA=3.0, VD=0.65, CAP=400;
+const KI={A1:12,A2A:8};
+const LEVELS=['미미','약함','중간','뚜렷'];
+const lvl=x=>x<.12?0:x<.35?1:x<.6?2:3;
+const clock=t=>{const m=Math.round((6+t)*60)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');};
+
+const DEFAULT={doses:[{t:2,mg:150},{t:8,mg:100},{t:12,mg:0}],obs:9,bed:17,weight:65,habit:'daily',sens:'normal',metab:'normal',
+  smoke:false,oc:false,preg:false,inhMod:false,inhStrong:false,sleepDep:false,analgesic:false};
+let state=JSON.parse(JSON.stringify(DEFAULT));
+let selected='e_wake';
+let wdH=30;
+
+/* ---------- 참고문헌 ---------- */
+const REFS={
+  fredholm:{c:'Fredholm BB et al. (1999). Actions of caffeine in the brain with special reference to factors that contribute to its widespread use. Pharmacol Rev.',q:'Actions of caffeine in the brain with special reference to factors that contribute to its widespread use'},
+  jacobson:{c:'Jacobson KA et al. (2022). Adenosine A2A receptor antagonists: from caffeine to selective non-xanthines. Br J Pharmacol.',q:'Adenosine A2A receptor antagonists: from caffeine to selective non-xanthines'},
+  lazarus:{c:'Lazarus M et al. (2011). Arousal effect of caffeine depends on adenosine A2A receptors in the shell of the nucleus accumbens. J Neurosci.',q:'Arousal effect of caffeine depends on adenosine A2A receptors in the shell of the nucleus accumbens'},
+  volkow:{c:'Volkow ND et al. (2015). Caffeine increases striatal dopamine D2/D3 receptor availability in the human brain. Transl Psychiatry.',q:'Caffeine increases striatal dopamine D2/D3 receptor availability in the human brain'},
+  ferre:{c:'Ferré S (2010). Role of the central ascending neurotransmitter systems in the psychostimulant effects of caffeine. J Alzheimers Dis.',q:'Role of the central ascending neurotransmitter systems in the psychostimulant effects of caffeine'},
+  corti:{c:'Corti R et al. (2002). Coffee acutely increases sympathetic nerve activity and blood pressure independently of caffeine content. Circulation.',q:'Coffee acutely increases sympathetic nerve activity and blood pressure independently of caffeine content'},
+  mesas:{c:'Mesas AE et al. (2011). The effect of coffee on blood pressure and cardiovascular disease in hypertensive individuals: a systematic review and meta-analysis. Am J Clin Nutr.',q:'effect of coffee on blood pressure and cardiovascular disease in hypertensive individuals systematic review meta-analysis Mesas'},
+  marcus:{c:'Marcus GM et al. (2023). Acute effects of coffee consumption on health among ambulatory adults. N Engl J Med.',q:'Acute effects of coffee consumption on health among ambulatory adults'},
+  drake:{c:'Drake C et al. (2013). Caffeine effects on sleep taken 0, 3, or 6 hours before going to bed. J Clin Sleep Med.',q:'Caffeine effects on sleep taken 0, 3, or 6 hours before going to bed'},
+  gardiner:{c:'Gardiner C et al. (2023). The effect of caffeine on subsequent sleep: a systematic review and meta-analysis. Sleep Med Rev.',q:'The effect of caffeine on subsequent sleep: a systematic review and meta-analysis'},
+  derry:{c:'Derry CJ, Derry S, Moore RA (2014). Caffeine as an analgesic adjuvant for acute pain in adults. Cochrane Database Syst Rev.',q:'Caffeine as an analgesic adjuvant for acute pain in adults'},
+  chmiel:{c:'Chmiel et al. (2026). Caffeine and experimental pain sensitivity in humans: systematic review and meta-analysis. Nutrients.',q:'Caffeine experimental pain sensitivity humans systematic review meta-analysis'},
+  sawynok:{c:'Sawynok J (2011). Caffeine and pain. Pain.',q:'Sawynok caffeine and pain'},
+  juliano:{c:'Juliano LM, Griffiths RR (2004). A critical review of caffeine withdrawal: empirical validation of symptoms and signs, incidence, severity, and associated features. Psychopharmacology.',q:'A critical review of caffeine withdrawal: empirical validation of symptoms and signs, incidence, severity, and associated features'},
+  sigmon:{c:'Sigmon SC et al. (2009). Caffeine withdrawal, acute effects, tolerance, and absence of net beneficial effects of chronic administration: cerebral blood flow velocity, quantitative EEG, and subjective effects. Psychopharmacology.',q:'Caffeine withdrawal, acute effects, tolerance, and absence of net beneficial effects of chronic administration'},
+  rieg:{c:'Rieg T et al. (2005). Requirement of intact adenosine A1 receptors for the diuretic and natriuretic action of the methylxanthines theophylline and caffeine. J Pharmacol Exp Ther.',q:'Requirement of intact adenosine A1 receptors for the diuretic and natriuretic action of the methylxanthines theophylline and caffeine'},
+  alsene:{c:'Alsene K et al. (2003). Association between A2a receptor gene polymorphisms and caffeine-induced anxiety. Neuropsychopharmacology.',q:'Association between A2a receptor gene polymorphisms and caffeine-induced anxiety'},
+  welsh:{c:'Welsh EJ et al. (2010). Caffeine for asthma. Cochrane Database Syst Rev.',q:'Welsh caffeine for asthma Cochrane'},
+  liszt:{c:'Liszt KI et al. (2017). Caffeine induces gastric acid secretion via bitter taste signaling in gastric parietal cells. PNAS.',q:'Caffeine induces gastric acid secretion via bitter taste signaling in gastric parietal cells'},
+  rao:{c:'Rao SS et al. (1998). Is coffee a colonic stimulant? Eur J Gastroenterol Hepatol.',q:'Is coffee a colonic stimulant'},
+  guest:{c:'Guest NS et al. (2021). International Society of Sports Nutrition position stand: caffeine and exercise performance. J Int Soc Sports Nutr.',q:'International society of sports nutrition position stand: caffeine and exercise performance'},
+  nehlig:{c:'Nehlig A (2018). Interindividual differences in caffeine metabolism and factors driving caffeine consumption. Pharmacol Rev.',q:'Interindividual differences in caffeine metabolism and factors driving caffeine consumption'},
+  jeppesen:{c:'Jeppesen U et al. (1996). Fluvoxamine와 카페인 대사(CYP1A2) 상호작용 연구. Eur J Clin Pharmacol.',q:'Jeppesen fluvoxamine caffeine CYP1A2'},
+  efsa:{c:'EFSA NDA Panel (2015). Scientific Opinion on the safety of caffeine. EFSA Journal.',q:'EFSA Scientific Opinion on the safety of caffeine 2015',host:'scholar'},
+  asnc:{c:'ASNC 영상 지침: 약물부하 심근관류검사 전 메틸잔틴(카페인) 제한.',q:'ASNC imaging guidelines pharmacologic stress myocardial perfusion caffeine',host:'scholar'},
+  willson:{c:'Willson C (2018). The clinical toxicology of caffeine: a review and case study. Toxicol Rep.',q:'The clinical toxicology of caffeine: A review and case study'}
+};
+const refURL=k=>{const r=REFS[k];return (r.host==='scholar'?'https://scholar.google.com/scholar?q=':'https://pubmed.ncbi.nlm.nih.gov/?term=')+encodeURIComponent(r.q);};
+
+/* ---------- 반응 메타 ---------- */
+const EFF={
+  e_wake:{name:'각성·졸음 감소',grade:'A',path:'A2A(측좌핵)·A1 길항 → 수면 촉진 신호 감소'},
+  e_sleep:{name:'수면 방해',grade:'A',path:'취침 시 남은 카페인이 A2A·A1을 계속 가로막음'},
+  e_anx:{name:'불안·초조',grade:'B',path:'A2A 길항 · 각성·스트레스 회로 조절'},
+  e_tremor:{name:'손떨림',grade:'B',path:'중추 운동회로 + β2 생리적 진전 증폭(간접)'},
+  e_hr:{name:'심박 변화',grade:'B',path:'A1 해제·교감 반응(↑)과 압수용체 반사(↓)의 합'},
+  e_lipo:{name:'지방분해',grade:'B',path:'카테콜아민 → β → cAMP–PKA–HSL (간접)'},
+  e_bp:{name:'혈압 상승',grade:'B',path:'혈관확장 신호 감소 + 교감 반응, 상습자 내성'},
+  e_pain:{name:'통증 변화',grade:'B',path:'상태에 따라 방향이 갈림 (통증 탭)'},
+  e_resp:{name:'호흡 촉진',grade:'B',path:'뇌간 호흡중추의 아데노신 억제 감소'},
+  e_diur:{name:'이뇨',grade:'B',path:'신장 A1 길항 → Na⁺ 재흡수 감소, 상습자 내성'}
+};
+
+/* ---------- 그래프 구조 ---------- */
+const NODES=[
+  {id:'caf',col:0,label:'카페인',kind:'drug'},
+  {id:'A2A',col:1,label:'A2A 수용체',kind:'rec',g:'Gs/olf'},
+  {id:'A1',col:1,label:'A1 수용체',kind:'rec',g:'Gi/o'},
+  {id:'A2B',col:1,label:'A2B 수용체',kind:'rec',g:'Gs·Gq',faint:true},
+  {id:'A3',col:1,label:'A3 수용체',kind:'rec',g:'Gi/o·Gq',faint:true},
+  {id:'sig_gs',col:2,label:'Gs/olf 신호 차단',sub:'A2A 발현 세포 cAMP↓',kind:'sig'},
+  {id:'sig_d2',col:2,label:'D2 신호 상대적 강화',sub:'A2A–D2 이형체',kind:'sig'},
+  {id:'sig_gi',col:2,label:'Gi/o 억제 해제',sub:'AC · GIRK · Ca²⁺ 채널',kind:'sig'},
+  {id:'sig_symp',col:2,label:'교감·카테콜아민 반응',sub:'간접 · 조건부',kind:'sig'},
+  {id:'sig_vaso',col:2,label:'혈관확장 신호 감소',sub:'A2A · A2B',kind:'sig'},
+  {id:'t_wake',col:3,label:'각성 회로',sub:'측좌핵 · 기저전뇌 · 시상하부',kind:'tis'},
+  {id:'t_striatum',col:3,label:'선조체 운동·동기',sub:'간접경로 MSN',kind:'tis'},
+  {id:'t_heart',col:3,label:'동방·방실결절',sub:'IK,Ado · If · ICa,L',kind:'tis'},
+  {id:'t_beta',col:3,label:'말초 β수용체',sub:'β1 심장 · β2 근육 · 지방세포',kind:'tis'},
+  {id:'t_vessel',col:3,label:'혈관 · 뇌혈관',sub:'말초저항 · 뇌혈류',kind:'tis'},
+  {id:'t_pain',col:3,label:'통각 전달 시냅스',sub:'척수 후각 A1',kind:'tis'},
+  {id:'t_resp',col:3,label:'뇌간 호흡중추',sub:'호흡 구동',kind:'tis'},
+  {id:'t_kidney',col:3,label:'신장 세뇨관',sub:'근위세뇨관 · TGF',kind:'tis'},
+  ...['e_wake','e_sleep','e_anx','e_tremor','e_hr','e_lipo','e_bp','e_pain','e_resp','e_diur'].map(id=>({id,col:4,label:EFF[id].name,kind:'eff'}))
+];
+const NB={};NODES.forEach(n=>NB[n.id]=n);
+const EDGES=[
+  ['caf','A2A','block'],['caf','A1','block'],['caf','A2B','block',1],['caf','A3','block',1],
+  ['A2A','sig_gs','act'],['A2A','sig_d2','act'],['A2A','sig_vaso','act'],['A2B','sig_vaso','act',1],
+  ['A1','sig_gi','act'],['A1','sig_symp','ind'],['A2A','sig_symp','ind'],
+  ['sig_gs','t_wake','act'],['sig_gi','t_wake','act'],['sig_d2','t_striatum','act'],
+  ['sig_gi','t_heart','act'],['sig_gi','t_pain','act'],['sig_gi','t_resp','act'],['sig_gi','t_kidney','act'],
+  ['sig_symp','t_beta','ind'],['sig_symp','t_vessel','ind'],['sig_vaso','t_vessel','act'],
+  ['t_wake','e_wake','act'],['t_wake','e_sleep','act'],['t_wake','e_anx','act'],
+  ['t_striatum','e_wake','act'],['t_striatum','e_tremor','ind'],
+  ['t_beta','e_tremor','ind'],['t_beta','e_hr','ind'],['t_beta','e_lipo','ind'],
+  ['t_heart','e_hr','act'],
+  ['t_vessel','e_bp','act'],['t_vessel','e_hr','inh'],['t_vessel','e_pain','ind'],
+  ['t_pain','e_pain','ind'],['t_resp','e_resp','act'],['t_kidney','e_diur','act']
+];
+
+/* ---------- 상세 설명 ---------- */
+const D={
+  caf:{kind:'약물',title:'카페인',lead:'아데노신과 구조가 비슷한 메틸잔틴입니다. 아데노신 수용체에 결합하지만 활성화하지 않는 경쟁적 길항제로, 아데노신이 보내던 신호를 가로막습니다.',
+    steps:['경구 흡수가 빠르고 거의 완전하며, 보통 30–120분에 최고 혈중 농도에 도달합니다.','혈액뇌장벽과 태반을 통과합니다.','간 CYP1A2가 주로 대사합니다. 대사체는 paraxanthine 약 80%, theobromine 약 11%, theophylline 약 5%입니다.','paraxanthine도 아데노신 수용체를 길항하는 활성 대사체여서, 효과는 모체 약물 농도만으로 완전히 예측되지 않습니다.','성인 반감기는 보통 3–6시간이며 개인차가 큽니다.'],
+    caveat:'이 프로그램의 농도 곡선은 모체 카페인만 계산합니다. 활성 대사체와 전날 섭취분의 누적은 반영하지 않습니다.',grade:'A',refs:['fredholm','nehlig']},
+  A1:{kind:'수용체 · Gi/o',title:'A1 수용체',lead:'억제성 수용체입니다. 아데노신이 결합하면 신경세포, 심장 박동세포, 신장 세포의 활동이 줄어듭니다. 카페인은 이 결합을 가로막아 억제를 약하게 만듭니다.',
+    steps:['Gi/o 활성 → adenylyl cyclase 억제 → cAMP·PKA 신호 감소','Gβγ → GIRK(K⁺) 채널 개방 → 막 과분극, 활동전위 발생 감소','Gβγ → N형·P/Q형 전압의존 Ca²⁺ 채널 억제 → 시냅스 전 신경전달물질 방출 감소','카페인 길항 시 이 억제가 줄어 글루탐산·아세틸콜린·노르에피네프린 등의 전달이 상대적으로 늘 수 있습니다. 크기와 방향은 회로마다 다릅니다.','분포: 대뇌피질·해마·소뇌·기저전뇌, 심장 동방·방실결절, 신장, 척수 후각'],
+    caveat:'인간 A1에 대한 카페인 Ki는 약 10–12 µM로 보고되며 실험계에 따라 다릅니다. 이 모델은 12 µM을 쓰고, 내인성 아데노신과의 경쟁은 단순화했습니다.',grade:'A',refs:['fredholm','jacobson']},
+  A2A:{kind:'수용체 · Gs/olf',title:'A2A 수용체',lead:'cAMP를 올리는 G단백질에 연결된 수용체이며, 카페인 각성 효과에서 가장 중요한 표적입니다.',
+    steps:['Gs/olf 활성 → adenylyl cyclase → cAMP 증가 → PKA','선조체·측좌핵 간접경로 뉴런에서 도파민 D2 수용체와 이형체를 이루고 D2 신호를 억제','혈관 평활근·내피에서 혈관확장, 면역세포에서 항염증 신호','측좌핵 껍질의 A2A를 제거한 동물에서는 카페인의 각성 효과가 사라졌습니다 (Lazarus 2011).'],
+    caveat:'카페인이 A2A를 막으면 A2A를 가진 세포에서는 cAMP 신호가 오히려 줄어듭니다. 카페인이 모든 조직에서 cAMP를 올린다는 설명은 맞지 않습니다. 인간 A2A Ki 보고값은 약 2–23 µM로 폭이 넓어, 이 모델은 8 µM을 씁니다.',grade:'A',refs:['lazarus','jacobson','fredholm']},
+  A2B:{kind:'수용체 · Gs (일부 Gq)',title:'A2B 수용체',lead:'아데노신 친화도가 낮아 염증이나 허혈처럼 아데노신이 많이 쌓인 조직에서 주로 작동합니다.',
+    steps:['혈관 반응, 비만세포·면역세포의 염증 신호 조절','염증 환경의 통증 촉진 신호에 관여할 가능성이 있어, 이 경우 차단은 통증 완화 방향'],
+    caveat:'일상 섭취 농도에서 개별 증상에 대한 기여는 불확실합니다. 그래서 이 모델은 A2B의 점유 지수를 숫자로 보여 주지 않습니다.',grade:'C',refs:['jacobson']},
+  A3:{kind:'수용체 · Gi/o (일부 Gq)',title:'A3 수용체',lead:'면역·염증·세포 보호 신호를 조절합니다.',
+    steps:['Gi/o → cAMP 감소, 일부 조직에서 Gq → Ca²⁺ 신호','카페인 친화도는 종에 따라 크게 다르며 설치류 A3에서는 매우 약합니다.'],
+    caveat:'일상 섭취에서 임상 증상에 대한 기여는 거의 알려져 있지 않습니다.',grade:'C',refs:['jacobson','fredholm']},
+  sig_gi:{kind:'세포 내 신호 · A1 경로',title:'Gi/o 억제 신호 해제',lead:'A1이 막히면 Gi/o가 걸던 세 가지 억제가 함께 줄어듭니다.',
+    steps:['Adenylyl cyclase 억제 감소 → cAMP·PKA 신호 회복','GIRK 전류 감소 → 막이 덜 과분극 → 흥분성 증가','N형·P/Q형 Ca²⁺ 채널 억제 감소 → 시냅스 전 전달물질 방출 증가','같은 원리가 심장, 신장, 호흡중추, 통각 시냅스에서 각기 다른 결과로 이어집니다.'],
+    caveat:'억제가 풀리는 방식이므로 효과의 크기는 그 조직의 아데노신 농도(수면 압력, 대사 상태)에 좌우됩니다.',grade:'A',refs:['fredholm']},
+  sig_gs:{kind:'세포 내 신호 · A2A 경로',title:'Gs/olf 신호 차단',lead:'A2A를 가진 세포에서는 아데노신이 만들던 cAMP 신호가 줄어듭니다.',
+    steps:['선조체 간접경로 GABA 뉴런(MSN)의 A2A–Gαolf–cAMP–PKA 신호 감소','이 뉴런들은 운동 억제와 수면 촉진 쪽으로 작용하는 회로에 속합니다.','결과적으로 수면 촉진 회로의 출력이 약해지고 각성 쪽으로 기웁니다.'],
+    caveat:'같은 차단이 혈관에서는 확장 신호 감소로, 면역세포에서는 항염증 신호 감소로 나타납니다.',grade:'A',refs:['lazarus','ferre']},
+  sig_d2:{kind:'수용체 상호작용',title:'D2 신호 상대적 강화',lead:'선조체에서 A2A와 D2는 이형체를 이루며 서로 반대 방향으로 작용합니다. A2A를 막으면 D2 신호가 상대적으로 강해집니다.',
+    steps:['A2A 활성 → D2 수용체의 도파민 친화도와 신호 억제','카페인 A2A 길항 → 이 억제가 줄어 D2 신호가 상대적으로 강화','사람 PET 연구(20명): 카페인 300 mg 후 선조체 D2/D3 수용체 가용성이 증가했으나, 도파민 방출 증가를 보여 준 결과는 아닙니다 (Volkow 2015).'],
+    caveat:'암페타민처럼 도파민 방출을 강하게 일으키는 기전과 다릅니다. 카페인이 도파민 분비를 직접 늘린다는 설명은 지나친 단순화입니다.',grade:'B',refs:['volkow','ferre']},
+  sig_symp:{kind:'자율신경 · 간접',title:'교감신경·카테콜아민 반응',lead:'카페인은 β수용체 효현제가 아닙니다. 상황에 따라 교감신경–부신수질 반응을 키워 β수용체 경로를 간접적으로 움직입니다.',
+    steps:['비상습 섭취자에서 근육 교감신경 활성과 혈압 상승이 관찰되었고, 상습자에서는 약했습니다 (Corti 2002).','혈중 에피네프린 상승은 용량과 내성에 따라 다릅니다.','β1(심장), β2(골격근), β(지방세포) 경로로 이어집니다.'],
+    caveat:'조건부 경로입니다. 매일 마시는 사람에게서는 상당 부분 내성이 생깁니다.',grade:'B',refs:['corti']},
+  sig_vaso:{kind:'혈관 신호',title:'혈관확장 신호 감소',lead:'A2A·A2B는 여러 혈관에서 cAMP와 내피 신호를 통해 혈관을 넓힙니다. 카페인은 이 확장 신호를 줄입니다.',
+    steps:['말초 일부 혈관: 확장 신호 감소 → 혈관저항 증가','뇌혈관: 아데노신 길항 → 혈관 수축, 뇌혈류 감소','혈관마다 수용체 분포가 달라 반응 방향이 모두 같지는 않습니다.'],
+    caveat:'혈압 상승을 교감신경 활성만으로 설명할 수는 없습니다. 혈관 자체의 반응과 내피 조절이 함께 작용합니다.',grade:'B',refs:['jacobson','corti']},
+  t_wake:{kind:'뇌 회로',title:'각성 회로',lead:'깨어 있는 시간이 길어질수록 아데노신이 쌓여 수면 압력이 커집니다. 카페인은 이 신호가 전달되지 못하게 가립니다.',
+    steps:['측좌핵 껍질 A2A: 카페인 각성 효과에 필요 (동물 연구)','기저전뇌 A1: 콜린성 각성 뉴런에 대한 억제 감소','시상하부 히스타민·오렉신 각성계에 간접 영향','결과: 수면 잠복기 증가, 서파수면과 수면 효율 감소'],
+    caveat:'카페인은 아데노신 생성을 멈추지 않습니다. 수면 부족 자체는 해결되지 않으며, 카페인이 빠지면 쌓인 수면 압력이 그대로 드러납니다.',grade:'A',refs:['lazarus','fredholm']},
+  t_striatum:{kind:'뇌 회로',title:'선조체 운동·동기 회로',lead:'간접경로 뉴런의 A2A–D2 균형이 바뀌면서 운동 활성과 동기 수준이 달라집니다.',
+    steps:['A2A 길항 → 간접경로 출력 감소 → 운동 활성 증가 방향','D2 신호 상대적 강화 → 동기·보상 관련 행동 변화','운동 출력의 미세한 변동은 손떨림의 중추 경로 중 하나로 제시됩니다.'],
+    caveat:'사람에서 이 회로 변화를 직접 측정한 근거는 제한적입니다.',grade:'B',refs:['ferre','volkow']},
+  t_heart:{kind:'심장',title:'동방결절·방실결절',lead:'아데노신은 A1을 통해 심박을 늦추고 방실 전도를 지연시킵니다. 카페인은 이 감속 작용을 약하게 합니다.',
+    steps:['A1 → Gi/o → GIRK 계열 IK,Ado 증가 → 박동세포 과분극','cAMP 감소 → HCN 채널 If 전류 감소, L형 Ca²⁺ 전류 억제','결과는 서맥과 방실전도 지연이며, 카페인 길항 시 이 효과가 줄어듭니다.'],
+    caveat:'이 작용만으로 심박수가 반드시 오르지는 않습니다. 혈압 상승에 따른 압수용체 반사가 반대 방향으로 작용합니다. 아데노신·regadenoson 부하검사 전에 카페인을 제한하는 이유이기도 합니다.',grade:'B',refs:['fredholm','asnc']},
+  t_beta:{kind:'말초 수용체 · 간접',title:'말초 β아드레날린 수용체',lead:'카테콜아민 반응이 커질 때 거치는 공통 경로입니다. 모두 Gs → adenylyl cyclase → cAMP → PKA로 이어집니다.',
+    steps:['β1(심장): PKA가 L형 Ca²⁺ 채널과 phospholamban을 인산화 → 칼슘 순환·수축력 증가. 박동세포 HCN 조절 → 심박 증가 방향','β2(골격근·근방추): 생리적 진전 증폭 가능','β(지방세포): PKA → HSL·perilipin 인산화 → 중성지방 분해'],
+    caveat:'카페인이 β수용체를 직접 자극하지는 않습니다. 이 노드의 활성은 교감·카테콜아민 반응의 크기에 달려 있습니다.',grade:'B',refs:['corti']},
+  t_vessel:{kind:'혈관',title:'혈관 평활근·뇌혈관',lead:'혈관확장 신호가 줄고 교감 반응이 더해지면 말초혈관저항과 혈압이 오를 수 있습니다.',
+    steps:['말초혈관저항 증가 → 혈압 상승','뇌혈관 수축 → 뇌혈류 감소. 두통에서 진통 보조 효과를 설명하는 요소 중 하나','혈압 상승 → 압수용체 반사 → 미주신경 활성 → 심박수 감소 방향 (지도의 붉은 ⊣ 연결)'],
+    caveat:'비상습자에서 혈압과 말초혈관저항은 오르지만 심박수는 변하지 않거나 소폭 감소한 연구들이 있습니다.',grade:'B',refs:['mesas','corti']},
+  t_pain:{kind:'통각 회로',title:'통각 전달 시냅스',lead:'척수 후각 등에서 A1은 통각 신호를 줄이는 쪽으로 작용합니다.',
+    steps:['아데노신 → A1 → 일차 구심섬유의 Ca²⁺ 유입과 흥분성 전달물질 방출 억제 → 항통각','카페인 A1 길항 → 이 억제가 약해져 특정 상황에서 통각 전달이 상대적으로 늘 가능성','염증 환경에서는 A2A·A2B가 통증 촉진에 관여할 수 있어, 그 차단은 통증 완화 방향'],
+    caveat:'주로 수용체·회로 수준의 기전 근거입니다. 일상적인 카페인 섭취가 사람의 통증을 일관되게 키운다는 임상 근거와는 구별해야 합니다.',grade:'C',refs:['sawynok','chmiel']},
+  t_resp:{kind:'뇌간',title:'뇌간 호흡중추',lead:'아데노신은 호흡 구동을 억제하는 방향으로 작용합니다. 카페인은 이 억제를 줄입니다.',
+    steps:['호흡중추의 아데노신 억제 신호 감소 → 호흡 구동과 CO₂ 반응성 증가','미숙아 무호흡 치료에 caffeine citrate를 쓰는 약리학적 배경','기도에 대한 약한 기관지 확장 효과: 천식 환자에서 수 시간 동안 폐기능이 소폭 개선 (Welsh 2010)'],
+    caveat:'건강한 성인이 일상 섭취로 느끼는 호흡 변화는 작습니다. 기관지 확장 효과는 천식 치료제보다 훨씬 약합니다.',grade:'B',refs:['welsh']},
+  t_kidney:{kind:'신장',title:'근위세뇨관 · 세뇨관-사구체 되먹임',lead:'아데노신은 A1을 통해 근위세뇨관의 Na⁺ 재흡수를 돕고, 세뇨관-사구체 되먹임으로 사구체 여과를 조절합니다.',
+    steps:['A1 길항 → 근위세뇨관 Na⁺·수분 재흡수 감소','세뇨관-사구체 되먹임 변화 → 사구체 혈역학 변화','A1 수용체가 없는 생쥐에서는 카페인의 이뇨·나트륨 배설 효과가 사라졌습니다 (Rieg 2005).'],
+    caveat:'매일 섭취하는 사람은 이뇨 효과에 내성이 생깁니다. NHE3 억제만으로 설명하는 가설은 동물 연구에서 지지되지 않았습니다.',grade:'B',refs:['rieg']},
+  e_wake:{kind:'생리 반응',title:'각성·졸음 감소',lead:'사람 연구에서 가장 일관된 카페인 효과입니다.',
+    steps:['A2A(측좌핵)·A1(기저전뇌) 길항 → 수면 촉진 신호 감소','주관적 졸음 감소, 반응시간과 경계 수행 개선','수면이 부족할 때 수행 저하를 일부 되돌리지만 수면 부채를 갚지는 않습니다.'],
+    caveat:'매일 마시는 사람은 부분 내성이 생깁니다. 상습자가 느끼는 효과의 일부는 밤사이 생긴 가벼운 금단을 되돌리는 것이라는 연구도 있습니다 (Sigmon 2009).',grade:'A',refs:['fredholm','lazarus','sigmon']},
+  e_sleep:{kind:'생리 반응',title:'수면 방해',lead:'취침 시점에 남아 있는 카페인이 수면 구조를 바꿉니다. 이 카드는 관찰 시각이 아니라 취침 시각의 농도로 계산합니다.',
+    steps:['수면 잠복기 증가, 총수면시간·수면 효율·서파수면 감소','메타분석: 총수면 약 45분, 수면 효율 약 7% 감소 (Gardiner 2023)','400 mg을 취침 6시간 전에 먹어도 총수면이 1시간 넘게 줄었습니다 (Drake 2013).','같은 메타분석은 커피 한 잔(약 107 mg)은 취침 약 8.8시간 전, 약 217 mg은 약 13.2시간 전까지 마셔야 총수면 감소를 피할 수 있다고 추정했습니다.'],
+    caveat:'수면 효과는 내성이 잘 생기지 않는 편입니다. 100 mg 정도로도 수면에 영향을 받는 사람이 있습니다.',grade:'A',refs:['gardiner','drake']},
+  e_anx:{kind:'생리 반응',title:'불안·초조',lead:'고용량, 비상습 섭취, 높은 민감도에서 잘 나타납니다.',
+    steps:['A2A·A1 길항 → 각성·스트레스 반응 회로 조절','ADORA2A 유전자 변이(1976T>C)가 카페인 유발 불안 민감도와 연관되었습니다 (Alsene 2003).','수면 부족이 겹치면 증폭될 수 있습니다.'],
+    caveat:'불안장애가 있는 사람은 더 민감할 수 있습니다. 개인차가 커서 이 모델에서는 민감도 설정이 크게 작용합니다.',grade:'B',refs:['alsene','ferre']},
+  e_tremor:{kind:'생리 반응',title:'손떨림',lead:'하나의 경로가 아니라 중추와 말초 경로가 겹쳐 나타납니다.',
+    steps:['경로 A: A1·A2A 길항 → 운동 회로 흥분성과 도파민 신호 조절 → 운동 출력의 미세한 변동','경로 B: 카테콜아민 반응 증가 → 골격근·근방추 β2 → 생리적 진전 증폭','경로 C: 불안·수면 부족 → 자율신경 반응 → 진전 증폭'],
+    caveat:'근육 RyR을 직접 열어 Ca²⁺를 방출시키는 기전은 mM 수준의 실험 농도에서만 의미가 있어 일반 섭취 후 손떨림의 설명이 되지 않습니다. 일반 섭취량에서 진전 증가는 일관되게 관찰되지 않으며 개인차가 큽니다.',grade:'B',refs:['fredholm','corti']},
+  e_hr:{kind:'생리 반응',title:'심박 변화',lead:'반대 방향인 두 경로의 합으로 결정됩니다. 그래서 일반 섭취량에서 빈맥은 정해진 결과가 아닙니다.',
+    steps:['올리는 힘: 심장 A1 억제 해제 + 교감·카테콜아민 → β1–Gs–cAMP–PKA','내리는 힘: 혈관저항·혈압 상승 → 압수용체 반사 → 미주신경성 감속','비상습자 연구에서 혈압은 올라도 심박수는 그대로이거나 소폭 감소하는 경우가 흔합니다.','무작위 연구: 커피를 마신 날 심실조기수축은 늘었지만 심방조기수축의 유의한 증가는 없었습니다 (Marcus 2023).'],
+    caveat:'두근거림(자각 증상)과 실제 부정맥은 다릅니다. 이 모델은 심박수를 숫자로 예측하지 않고 두 힘의 균형만 보여 줍니다.',grade:'B',refs:['marcus','corti']},
+  e_lipo:{kind:'생리 반응',title:'지방분해',lead:'카테콜아민 반응이 커질 때 지방세포에서 일어나는 변화입니다.',
+    steps:['에피네프린 → β수용체 → Gs → cAMP → PKA','PKA → HSL·perilipin 인산화 → 중성지방 분해, 유리지방산 방출'],
+    caveat:'지방분해 증가가 체지방 감소를 뜻하지는 않습니다. 유리지방산은 다시 에스터화될 수 있고, 장기 체지방은 에너지 수지가 결정합니다. PDE 억제로 지방분해를 설명하는 것은 일반 섭취량에 맞지 않습니다.',grade:'B',refs:['fredholm']},
+  e_bp:{kind:'생리 반응',title:'혈압 상승',lead:'비상습자에게서 더 뚜렷하고, 매일 마시는 사람은 상당 부분 내성이 생깁니다.',
+    steps:['혈관확장 신호 감소 + 교감 반응 → 말초혈관저항 증가','고혈압 환자 메타분석: 카페인 200–300 mg 후 수축기 약 8 mmHg, 이완기 약 6 mmHg 상승, 3시간 이상 지속 (Mesas 2011)','비상습자는 혈압과 교감 활성이 올랐고, 상습자는 혈압 상승이 없었습니다 (Corti 2002).'],
+    caveat:'급성 반응입니다. 장기적인 고혈압 위험과는 따로 해석해야 합니다.',grade:'B',refs:['mesas','corti']},
+  e_pain:{kind:'생리 반응',title:'통증 변화',lead:'카페인은 통증을 늘 키우지도, 늘 줄이지도 않습니다. 상태에 따라 방향이 갈립니다.',
+    steps:['카페인 단독 급성 투여: 건강인 실험 통증에서 일관된 감소 근거가 확립되지 않았습니다 (Chmiel 2026, 9개 실험·216명).','진통제와 병용(카페인 100–130 mg): 충분한 진통을 얻는 환자 비율이 약 5–10%p 증가, NNT 약 14–15 (Derry 2014)','반복 섭취 후 중단: 금단성 두통','수면 방해 → 다음 날 통증 민감도에 간접 영향 가능'],
+    caveat:'진통제 병용 수치는 통증 강도 감소율이 아니라, 기준 이상의 진통을 얻은 환자 비율의 차이입니다. 현재 설정이 어느 상태인지는 통증 탭에 표시됩니다.',grade:'B',refs:['derry','chmiel','sawynok','juliano']},
+  e_resp:{kind:'생리 반응',title:'호흡 촉진',lead:'뇌간 호흡중추의 아데노신 억제가 줄어든 결과입니다.',
+    steps:['호흡 구동과 CO₂ 반응성 증가','미숙아 무호흡에 caffeine citrate를 쓰는 근거','천식 환자에서 수 시간 동안 폐기능 소폭 개선 (Welsh 2010)'],
+    caveat:'건강한 성인이 체감하는 변화는 작습니다.',grade:'B',refs:['welsh']},
+  e_diur:{kind:'생리 반응',title:'이뇨',lead:'신장 A1 길항의 결과입니다.',
+    steps:['근위세뇨관 Na⁺ 재흡수 감소 → 나트륨·수분 배설 증가','세뇨관-사구체 되먹임 변화'],
+    caveat:'상습 섭취자는 내성이 커서, 일반적인 커피 섭취가 반드시 순수분 손실로 이어지지는 않습니다.',grade:'B',refs:['rieg']}
+};
+
+/* ---------- 모델 ---------- */
+function halfLife(){
+  const base={fast:3.5,normal:5,slow:7}[state.metab];
+  return base*(state.smoke?.6:1)*(state.oc?1.8:1)*(state.preg?2.5:1)*(state.inhMod?1.5:1)*(state.inhStrong?6:1);
+}
+function compute(){
+  const S=state, th=halfLife(), ke=Math.LN2/th, V=VD*S.weight, f=KA/(KA-ke);
+  const act=S.doses.filter(d=>d.mg>0);
+  const conc=t=>{let s=0;for(const d of act){if(t>d.t){const dt=t-d.t;s+=d.mg/V*f*(Math.exp(-ke*dt)-Math.exp(-KA*dt));}}return s*1000/MW;};
+  const amt=t=>{let s=0;for(const d of act){if(t>=d.t){const dt=t-d.t;s+=d.mg*(f*Math.exp(-ke*dt)-(ke/(KA-ke))*Math.exp(-KA*dt));}}return s;};
+  const total=act.reduce((s,d)=>s+d.mg,0);
+  let maxC=0,tMax=0;for(let t=0;t<=24.001;t+=0.05){const c=conc(t);if(c>maxC){maxC=c;tMax=t;}}
+  const C=conc(S.obs), Cb=conc(S.bed);
+  const occ=(c,k)=>c/(c+k);
+  const oA1=occ(C,KI.A1), oA2A=occ(C,KI.A2A), bA2A=occ(Cb,KI.A2A);
+  const H=S.habit, sens={low:.75,normal:1,high:1.35}[S.sens], sf=w=>1+(sens-1)*w;
+  const avg=(oA1+oA2A)/2;
+  const symp=avg*{none:1,some:.8,daily:.5}[H];
+  const bp=clamp((.5*oA2A+.5*oA1)*{none:1,some:.75,daily:.45}[H]*sf(.4));
+  const up=clamp((.55*oA1*{none:1,some:.8,daily:.6}[H]+.45*symp)*sf(.8));
+  const down=bp*.85, net=up-down;
+  const withdrawal=H==='daily'&&total===0;
+  const E={
+    e_wake:clamp((.6*oA2A+.4*oA1)*{none:1,some:.9,daily:.75}[H]*sf(.4)*1.1),
+    e_sleep:clamp(bA2A*{none:1,some:.95,daily:.85}[H]*sf(.8)*1.4),
+    e_anx:clamp(oA2A*{none:1,some:.85,daily:.7}[H]*sf(1.2)*(S.sleepDep?1.2:1)*.6),
+    e_tremor:clamp(avg*{none:1,some:.85,daily:.7}[H]*sf(1.2)*(S.sleepDep?1.25:1)*.5),
+    e_bp:bp,
+    e_diur:clamp(oA1*{none:1,some:.7,daily:.35}[H]*.9),
+    e_resp:clamp(avg*.5),
+    e_lipo:clamp(symp*.9),
+    e_hr:clamp(Math.abs(net)*2.2)
+  };
+  let pain;
+  if(withdrawal) pain={key:'wd',label:'금단 두통 가능',grade:'A',idx:.7};
+  else if(C<0.5) pain={key:'none',label:'해당 없음',grade:'N',idx:0};
+  else if(S.analgesic) pain={key:'adj',label:'진통 보조 (소폭)',grade:'A',idx:.4};
+  else pain={key:'alone',label:'방향 가변',grade:'B',idx:.25};
+  E.e_pain=pain.idx;
+  const L={caf:C/(C+10),A1:oA1,A2A:oA2A,A2B:occ(C,25)*.5,A3:occ(C,40)*.4,
+    sig_gi:oA1,sig_gs:oA2A,sig_d2:oA2A*.8,sig_vaso:oA2A,sig_symp:symp,
+    t_wake:.6*oA2A+.4*oA1,t_striatum:oA2A*.8,t_heart:oA1,t_beta:symp,t_vessel:Math.max(oA2A*.9,symp),
+    t_pain:oA1,t_resp:avg,t_kidney:oA1*{none:1,some:.7,daily:.35}[H],...E};
+  return {th,ke,V,conc,amt,total,maxC,tMax,C,Cb,oA1,oA2A,bA2A,up,down,net,withdrawal,pain,E,L,amtBed:amt(S.bed)};
+}
+function effText(id,m){
+  if(id==='e_hr') return m.net>.12?'증가 쪽':m.net<-.12?'감소 쪽':'가변';
+  if(id==='e_pain') return m.pain.label;
+  return LEVELS[lvl(m.E[id])];
+}
+
+/* ---------- 컨트롤 ---------- */
+const doseList=$('#dose-list');
+function timeOptions(sel){let h='';for(let t=0;t<=17.5;t+=.5){h+=`<option value="${t}"${t===sel?' selected':''}>${clock(t)}</option>`;}return h;}
+function buildDoseRows(){
+  doseList.innerHTML=state.doses.map((d,i)=>`
+    <div class="dose-row">
+      <select id="dose-t-${i}" aria-label="${i+1}회차 섭취 시각">${timeOptions(d.t)}</select>
+      <input type="range" id="dose-mg-${i}" min="0" max="400" step="10" value="${d.mg}" aria-label="${i+1}회차 섭취량 (mg)">
+      <output id="dose-out-${i}" for="dose-mg-${i}">${d.mg} mg</output>
+    </div>`).join('');
+  state.doses.forEach((d,i)=>{
+    $('#dose-t-'+i).addEventListener('change',e=>{state.doses[i].t=+e.target.value;render();});
+    $('#dose-mg-'+i).addEventListener('input',e=>{
+      let v=+e.target.value; const others=state.doses.reduce((s,x,j)=>j===i?s:s+x.mg,0);
+      const capped=v+others>CAP; if(capped){v=Math.max(0,CAP-others);e.target.value=v;}
+      $('#cap-flag').hidden=!capped;
+      state.doses[i].mg=v; $('#dose-out-'+i).textContent=v+' mg'; render();
+    });
+  });
+}
+function bedOptions(){let h='';for(let t=15;t<=21;t+=.5){h+=`<option value="${t}"${t===state.bed?' selected':''}>${clock(t)}</option>`;}$('#bed').innerHTML=h;}
+function syncControls(){
+  buildDoseRows(); bedOptions();
+  $('#obs').value=state.obs; $('#weight').value=state.weight;
+  $('#habit-'+state.habit).checked=true; $('#sens-'+state.sens).checked=true; $('#metab-'+state.metab).checked=true;
+  $('#f-smoke').checked=state.smoke;$('#f-oc').checked=state.oc;$('#f-preg').checked=state.preg;
+  $('#f-inhmod').checked=state.inhMod;$('#f-inhstrong').checked=state.inhStrong;
+  $('#f-sleepdep').checked=state.sleepDep;$('#f-analgesic').checked=state.analgesic;
+  $('#cap-flag').hidden=true;
+}
+$('#obs').addEventListener('input',e=>{state.obs=+e.target.value;render();});
+$('#bed').addEventListener('change',e=>{state.bed=+e.target.value;render();});
+$('#weight').addEventListener('input',e=>{state.weight=+e.target.value;render();});
+document.querySelectorAll('input[name=habit]').forEach(r=>r.addEventListener('change',e=>{state.habit=e.target.value;render();}));
+document.querySelectorAll('input[name=sens]').forEach(r=>r.addEventListener('change',e=>{state.sens=e.target.value;render();}));
+document.querySelectorAll('input[name=metab]').forEach(r=>r.addEventListener('change',e=>{state.metab=e.target.value;render();}));
+[['f-smoke','smoke'],['f-oc','oc'],['f-preg','preg'],['f-inhmod','inhMod'],['f-inhstrong','inhStrong'],['f-sleepdep','sleepDep'],['f-analgesic','analgesic']]
+  .forEach(([id,k])=>$('#'+id).addEventListener('change',e=>{state[k]=e.target.checked;render();}));
+$('#btn-wd').addEventListener('click',()=>{state.habit='daily';state.doses.forEach(d=>d.mg=0);syncControls();setTab('wd');render();});
+$('#btn-reset').addEventListener('click',()=>{state=JSON.parse(JSON.stringify(DEFAULT));syncControls();render();});
+
+/* ---------- 읽기값 ---------- */
+function renderReadouts(m){
+  const fac=[];if(state.smoke)fac.push('흡연');if(state.oc)fac.push('피임약');if(state.preg)fac.push('임신');if(state.inhMod)fac.push('중등도 억제');if(state.inhStrong)fac.push('강한 억제');
+  const pct=m.total>0?Math.round(m.amtBed/m.total*100):0;
+  $('#readouts').innerHTML=`
+    <div class="ro"><span class="k">${clock(state.obs)} 혈중 농도</span><span class="v">${m.C.toFixed(1)}<small>µM</small></span><span class="s">${(m.C*MW/1000).toFixed(2)} mg/L</span></div>
+    <div class="ro"><span class="k">오늘 총 섭취</span><span class="v">${m.total}<small>mg</small></span><span class="s">${(m.total/state.weight).toFixed(1)} mg/kg</span></div>
+    <div class="ro"><span class="k">추정 반감기</span><span class="v">${m.th.toFixed(1)}<small>h</small></span><span class="s">${fac.length?fac.join(' · '):'요인 없음'}</span></div>
+    <div class="ro"><span class="k">취침 ${clock(state.bed)} 체내 잔여</span><span class="v">${Math.round(m.amtBed)}<small>mg</small></span><span class="s">${m.total>0?'섭취량의 '+pct+'%':'섭취 없음'}</span></div>`;
+  $('#total-out').textContent=m.total;
+  $('#preg-flag').hidden=!(state.preg&&m.total>200);
+  $('#obs-out').textContent=clock(state.obs);
+  $('#weight-out').textContent=state.weight+' kg';
+  $('#mgkg-inline').textContent=(m.total/state.weight).toFixed(1)+' mg/kg';
+  $('#pk-cap').textContent=m.total>0?`오늘 최고 ${m.maxC.toFixed(1)} µM · ${clock(m.tMax)}`:'섭취 없음';
+  $('#occ-time').textContent='· '+clock(state.obs)+' 기준';
+}
+
+/* ---------- 농도 곡선 ---------- */
+const PK={W:680,H:250,L:40,R:14,T:18,B:34};
+function niceMax(v){const s=[10,15,20,25,30,40,50,60,80,100,120];for(const x of s)if(v<=x)return x;return Math.ceil(v/20)*20;}
+function drawPK(m){
+  const {W,H,L,R,T,B}=PK, iw=W-L-R, ih=H-T-B;
+  const yMax=niceMax(Math.max(m.maxC*1.15,KI.A1*1.3,15));
+  const x=t=>L+iw*t/24, y=c=>T+ih*(1-c/yMax);
+  let g='';
+  const step=yMax/5;
+  for(let v=0;v<=yMax+1e-6;v+=step){g+=`<line class="ax" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" ${v===0?'':'stroke-opacity=".55"'}/><text class="ax-t" x="${L-6}" y="${y(v)+3.5}" text-anchor="end">${Math.round(v)}</text>`;}
+  g+=`<text class="ax-t" x="${L-6}" y="${T-6}" text-anchor="end">µM</text>`;
+  for(let t=0;t<=24;t+=3){g+=`<text class="ax-t" x="${x(t)}" y="${H-B+16}" text-anchor="middle">${clock(t).slice(0,2)}</text>`;}
+  // Ki 기준선
+  g+=`<line class="ki-line ki-a2a" x1="${L}" x2="${W-R}" y1="${y(KI.A2A)}" y2="${y(KI.A2A)}"/><text class="ki-t a2a" x="${L+6}" y="${y(KI.A2A)+13}">A2A 50% 점유 · ${KI.A2A} µM</text>`;
+  g+=`<line class="ki-line ki-a1" x1="${L}" x2="${W-R}" y1="${y(KI.A1)}" y2="${y(KI.A1)}"/><text class="ki-t a1" x="${W-R-6}" y="${y(KI.A1)-5}" text-anchor="end">A1 50% 점유 · ${KI.A1} µM</text>`;
+  // 곡선
+  let pts=[];for(let t=0;t<=24.0001;t+=0.1)pts.push([x(t),y(m.conc(t))]);
+  const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join('');
+  g+=`<path class="pk-area" d="${line}L${x(24)},${y(0)}L${x(0)},${y(0)}Z"/><path class="pk-line" d="${line}"/>`;
+  // 취침
+  const bx=x(state.bed);
+  g+=`<line class="bed-line" x1="${bx}" x2="${bx}" y1="${T}" y2="${y(0)}"/><text class="bed-t" x="${bx+5}" y="${T+10}">취침</text>`;
+  // 섭취 표시
+  state.doses.filter(d=>d.mg>0).forEach(d=>{const dx=x(d.t),dy=y(0);g+=`<path class="dose-mk" d="M${dx-5},${dy} L${dx+5},${dy} L${dx},${dy-7} Z"/><text class="dose-t" x="${dx+6}" y="${dy-9}">${d.mg}</text>`;});
+  // 관찰 시각
+  const ox=x(state.obs), oy=y(m.C);
+  g+=`<line class="obs-line" x1="${ox}" x2="${ox}" y1="${T}" y2="${y(0)}"/><circle class="obs-dot" cx="${ox}" cy="${oy}" r="4.5"/>`;
+  const px=Math.min(Math.max(ox,L+22),W-R-22);
+  g+=`<rect class="obs-pill" x="${px-22}" y="${H-B+5}" width="44" height="16" rx="8"/><text class="obs-pill-t" x="${px}" y="${H-B+13}">${clock(state.obs)}</text>`;
+  $('#pk-svg').innerHTML=g;
+}
+$('#pk-svg').addEventListener('click',e=>{
+  const r=e.currentTarget.getBoundingClientRect(), px=(e.clientX-r.left)/r.width*PK.W;
+  const t=clamp((px-PK.L)/(PK.W-PK.L-PK.R)*24,0,24); state.obs=Math.round(t*4)/4; $('#obs').value=state.obs; render();
+});
+
+/* ---------- 점유 ---------- */
+function drawOcc(m){
+  const row=(name,g,v,ki)=>`<div class="occ-row"><span class="name">${name}<small>${g} · Ki ${ki} µM</small></span><span class="track"><i style="width:${(v*100).toFixed(1)}%"></i></span><span class="pct">${Math.round(v*100)}%</span></div>`;
+  const faint=(name,g)=>`<div class="occ-row faint"><span class="name">${name}<small>${g}</small></span><span class="track"></span><span class="pct">불확실</span></div>`;
+  $('#occ-rows').innerHTML=row('A2A','Gs/olf',m.oA2A,KI.A2A)+row('A1','Gi/o',m.oA1,KI.A1)+faint('A2B','Gs·Gq')+faint('A3','Gi/o·Gq');
+}
+
+/* ---------- 경로 지도 ---------- */
+const COLX=[64,250,470,722,985], COLW=[104,134,192,210,152], NH=46, GH=630, PADT=40, PADB=12;
+const COLNAME=['약물','수용체','세포 내 신호','조직 · 회로','생리 반응'];
+(function layout(){
+  const by=[[],[],[],[],[]];NODES.forEach(n=>by[n.col].push(n));
+  by.forEach((arr,c)=>{const span=GH-PADT-PADB, st=span/arr.length;arr.forEach((n,i)=>{n.w=COLW[c];n.h=NH;n.x=COLX[c]-n.w/2;n.y=PADT+st*(i+.5)-NH/2;});});
+})();
+function nodeSub(n,m){
+  if(n.kind==='drug') return m.C.toFixed(1)+' µM';
+  if(n.kind==='rec') return n.faint?n.g+' · 불확실':n.g+' · 점유 '+Math.round(m.L[n.id]*100)+'%';
+  if(n.kind==='eff') return effText(n.id,m)+' · 근거 '+(n.id==='e_pain'?(m.pain.grade==='N'?'–':m.pain.grade):EFF[n.id].grade);
+  return n.sub;
+}
+function drawMap(m){
+  let s=`<defs>
+    <marker id="mk-act" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path class="mk-act" d="M0,0 L10,5 L0,10 Z"/></marker>
+    <marker id="mk-ind" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path class="mk-ind" d="M0,0 L10,5 L0,10 Z"/></marker>
+    <marker id="mk-tee" viewBox="0 0 4 12" refX="3" refY="6" markerWidth="4" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><rect class="mk-tee" x="0.5" y="0" width="2.6" height="12"/></marker>
+  </defs>`;
+  COLNAME.forEach((c,i)=>{s+=`<text class="col-h" x="${COLX[i]}" y="18">${c}</text>`;});
+  EDGES.forEach(([a,b,type,faint])=>{
+    const A=NB[a],B=NB[b];
+    const x1=A.x+A.w, y1=A.y+A.h/2, x2=B.x-(type==='block'||type==='inh'?4:3), y2=B.y+B.h/2, dx=(x2-x1)*.5;
+    const lv=a==='caf'?m.L[b]:m.L[a];
+    const w=(1+2.4*clamp(lv)).toFixed(2);
+    const mk=type==='act'?'mk-act':type==='ind'?'mk-ind':'mk-tee';
+    s+=`<path class="edge e-${type}${faint?' e-faint':''}" data-a="${a}" data-b="${b}" d="M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}" stroke-width="${w}" marker-end="url(#${mk})"/>`;
+  });
+  NODES.forEach(n=>{
+    const lv=clamp(m.L[n.id]||0), sub=nodeSub(n,m);
+    s+=`<g class="node k-${n.kind}${n.faint?' faint':''}" data-id="${n.id}" tabindex="0" role="button" aria-label="${n.label}: ${sub}">
+      <rect class="box" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="8"/>
+      <text class="n-lab" x="${n.x+10}" y="${n.y+19}">${n.label}</text>
+      <text class="n-sub" x="${n.x+10}" y="${n.y+34}">${sub}</text>
+      <rect class="n-bar-bg" x="${n.x+8}" y="${n.y+n.h-5}" width="${n.w-16}" height="2" rx="1"/>
+      <rect class="n-bar" x="${n.x+8}" y="${n.y+n.h-5.5}" width="${((n.w-16)*lv).toFixed(1)}" height="3" rx="1.5"/>
+    </g>`;
+  });
+  const svg=$('#map-svg'); svg.innerHTML=s; applySelection();
+}
+const PAR={},CH={};NODES.forEach(n=>{PAR[n.id]=[];CH[n.id]=[];});EDGES.forEach(([a,b])=>{PAR[b].push(a);CH[a].push(b);});
+function closure(id,map){const out=new Set(),st=[id];while(st.length){const c=st.pop();for(const x of map[c]){if(!out.has(x)){out.add(x);st.push(x);}}}return out;}
+function applySelection(){
+  const anc=closure(selected,PAR), des=closure(selected,CH);
+  const up=new Set([...anc,selected]), dn=new Set([...des,selected]);
+  document.querySelectorAll('#map-svg .node').forEach(g=>{const id=g.dataset.id;g.classList.toggle('sel',id===selected);g.classList.toggle('dim',!(up.has(id)||dn.has(id)));});
+  document.querySelectorAll('#map-svg .edge').forEach(p=>{const a=p.dataset.a,b=p.dataset.b;const on=(up.has(a)&&up.has(b))||(dn.has(a)&&dn.has(b));p.classList.toggle('dim',!on);});
+  document.querySelectorAll('.card').forEach(c=>c.classList.toggle('sel',c.dataset.id===selected));
+}
+function select(id,scroll){
+  selected=id; applySelection(); renderDetail(lastModel);
+  if(scroll){const el=$('#map'),r=el.getBoundingClientRect();if(r.top<0||r.top>window.innerHeight*.6){el.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});}}
+}
+$('#map-svg').addEventListener('click',e=>{const g=e.target.closest('.node');if(g)select(g.dataset.id);});
+$('#map-svg').addEventListener('keydown',e=>{const g=e.target.closest('.node');if(g&&(e.key==='Enter'||e.key===' ')){e.preventDefault();select(g.dataset.id);}});
+
+/* ---------- 상세 ---------- */
+function nowLine(id,m){
+  const n=NB[id];
+  if(n.kind==='drug') return `관찰 시각 농도 <b>${m.C.toFixed(1)} µM</b> · 취침 시 <b>${m.Cb.toFixed(1)} µM</b>`;
+  if(n.kind==='rec') return n.faint?'점유 지수 <b>표시 안 함</b> (기여 불확실)':`점유 지수 <b>${Math.round(m.L[id]*100)}%</b> · Ki ${KI[id]} µM 대표값`;
+  if(id==='e_hr') return `올리는 힘 <b>${m.up.toFixed(2)}</b> · 내리는 힘 <b>${m.down.toFixed(2)}</b> → <b>${effText(id,m)}</b>`;
+  if(id==='e_sleep') return `취침 ${clock(state.bed)} 농도 <b>${m.Cb.toFixed(1)} µM</b> · 체내 잔여 <b>${Math.round(m.amtBed)} mg</b> → <b>${effText(id,m)}</b>`;
+  if(n.kind==='eff') return `현재 단계 <b>${effText(id,m)}</b>`;
+  return `신호 크기 지수 <b>${Math.round(clamp(m.L[id])*100)}%</b> (정성 지표)`;
+}
+function renderDetail(m){
+  const d=D[selected], n=NB[selected];
+  const grade=selected==='e_pain'?(m.pain.grade==='N'?d.grade:m.pain.grade):d.grade;
+  const chips=(arr)=>arr.map(x=>`<button type="button" class="chip" data-go="${x}">${NB[x].label}</button>`).join('');
+  $('#detail').innerHTML=`
+    <div>
+      <div class="d-kind">${d.kind}</div>
+      <h3>${d.title}</h3>
+      <p class="d-lead">${d.lead}</p>
+      <ol class="d-steps">${d.steps.map(s=>`<li>${s}</li>`).join('')}</ol>
+    </div>
+    <div class="d-side">
+      <div class="d-now"><span class="grade ${grade}">${grade}</span><span>${nowLine(selected,m)}</span></div>
+      <div class="caveat"><b>주의.</b> ${d.caveat}</div>
+      ${PAR[selected].length?`<div class="chips"><span class="chips-k">상류</span>${chips(PAR[selected])}</div>`:''}
+      ${CH[selected].length?`<div class="chips"><span class="chips-k">하류</span>${chips(CH[selected])}</div>`:''}
+      <div class="refs-inline">${d.refs.map(k=>`<a href="${refURL(k)}" target="_blank" rel="noopener">${REFS[k].c}</a>`).join('')}</div>
+    </div>`;
+  $('#detail').querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>select(b.dataset.go)));
+}
+
+/* ---------- 반응 카드 ---------- */
+function renderCards(m){
+  const ids=['e_wake','e_sleep','e_anx','e_tremor','e_hr','e_bp','e_pain','e_diur','e_resp','e_lipo'];
+  $('#cards').innerHTML=ids.map(id=>{
+    const meta=EFF[id], txt=effText(id,m);
+    let grade=meta.grade; if(id==='e_pain') grade=m.pain.grade;
+    let body;
+    if(id==='e_hr'){
+      body=`<div class="bal"><div class="bal-row up"><span>올리는 힘</span><span class="track"><i style="width:${(m.up*100).toFixed(0)}%"></i></span></div><div class="bal-row down"><span>내리는 힘</span><span class="track"><i style="width:${(m.down*100).toFixed(0)}%"></i></span></div></div>`;
+    }else{
+      const l=id==='e_pain'?(m.pain.key==='none'?-1:m.pain.key==='alone'?1:m.pain.key==='adj'?1:2):(lvl(m.E[id]));
+      body=`<div class="meter${id==='e_pain'&&m.pain.key==='alone'?' var':''}" aria-hidden="true">${[0,1,2,3].map(k=>`<i class="${k<=l&&l>=0&&!(l===0&&m.E[id]<0.04)?'on':''}"></i>`).join('')}</div>`;
+    }
+    const note=id==='e_sleep'?`<span class="note">취침 ${clock(state.bed)} 기준 · 잔여 ${Math.round(m.amtBed)} mg</span>`:id==='e_wake'&&m.withdrawal?`<span class="note">금단 시 피로·졸음 증가 가능</span>`:'';
+    return `<button type="button" class="card" data-id="${id}">
+      <div class="card-top"><h3>${meta.name}</h3><span class="grade ${grade}">${grade==='N'?'–':grade}</span></div>
+      <span class="lvl">${txt}</span>${body}
+      <span class="path">${meta.path}</span>${note}
+    </button>`;
+  }).join('');
+  $('#cards').querySelectorAll('.card').forEach(c=>c.addEventListener('click',()=>select(c.dataset.id,true)));
+  $('#wd-banner').hidden=!m.withdrawal;
+}
+
+/* ---------- 통증 ---------- */
+function renderPain(m){
+  const S=[
+    {k:'alone',t:'카페인 단독, 급성',dir:'통증 유형에 따라 가변',p:'사람 실험 통증에서 일관된 방향이 없습니다. A1 차단에 의한 통각 증폭은 기전 수준의 근거입니다.',g:'B'},
+    {k:'adj',t:'진통제와 병용',dir:'급성 진통 효과 소폭 증가',p:'카페인 100–130 mg 추가 시 충분한 진통을 얻는 비율이 약 5–10%p 증가합니다 (코크란).',g:'A'},
+    {k:'wd',t:'반복 섭취 후 갑작스러운 중단',dir:'금단성 두통 발생 가능',p:'아데노신 작용의 상대적 증가와 뇌혈관 확장·뇌혈류 증가가 주요 설명입니다.',g:'A'},
+    {k:'sleep',t:'카페인에 의한 수면 방해',dir:'다음 날 통증 민감도에 간접 영향 가능',p:'수용체를 직접 자극해서 생기는 통증과는 다른 경로입니다. 생리학적 개연성과 관련 임상 근거가 있습니다.',g:'B'}
+  ];
+  const sleepOn=m.E.e_sleep>=.35;
+  $('#pain-states').innerHTML=S.map(s=>{
+    const on=s.k===m.pain.key||(s.k==='sleep'&&sleepOn);
+    return `<div class="state${on?' on':''}"><span class="tag">${on?'현재 설정':''}</span><h4>${s.t}</h4><span class="dir">${s.dir}</span><p>${s.p}</p><span><span class="grade ${s.g}">${s.g}</span></span></div>`;
+  }).join('');
+}
+
+/* ---------- 금단 ---------- */
+const WDMAX=216;
+function renderWd(){
+  const pct=h=>(h/WDMAX*100).toFixed(2)+'%';
+  const rows=[
+    {k:'증상 발현',a:12,b:24,c:'var(--ind)'},
+    {k:'최고조',a:20,b:51,c:'var(--inh)'},
+    {k:'지속 · 회복',a:51,b:216,c:'var(--caf)',op:.45}
+  ];
+  $('#tl-rows').innerHTML=rows.map(r=>`<div class="tl-row"><span class="k">${r.k}</span><span class="tl-track"><b style="left:${pct(r.a)};width:${pct(r.b-r.a)};background:${r.c};opacity:${r.op||.85}"></b><span class="tl-cursor" style="left:${pct(wdH)}"></span></span></div>`).join('');
+  $('#tl-axis').innerHTML=[0,24,48,72,96,120,144,168,192,216].map(h=>`<span style="left:${pct(h)}">${h===0?'0':h/24+'일'}</span>`).join('');
+  $('#wd-out').textContent=wdH+'시간';
+  let ph;
+  if(wdH<12) ph='<b>대체로 증상 없음.</b> 혈중 카페인이 줄어드는 시기입니다.';
+  else if(wdH<20) ph='<b>증상이 시작될 수 있는 시기.</b> 두통, 피로, 졸음이 나타나기 시작합니다.';
+  else if(wdH<=51) ph='<b>증상이 가장 심해지는 시기.</b> 두통, 피로, 졸음, 집중력 저하, 기분 저하가 보고됩니다.';
+  else if(wdH<=216) ph='<b>점차 회복되는 시기.</b> 증상은 보통 2–9일 사이에 사라집니다.';
+  $('#phase-now').innerHTML=ph;
+}
+$('#wd-h').addEventListener('input',e=>{wdH=+e.target.value;renderWd();});
+
+/* ---------- 고농도 ---------- */
+const HC=[
+  {k:'A1·A2A 수용체 길항',s:'일상 섭취의 핵심 기전',lo:2,hi:25,c:'var(--act)'},
+  {k:'PDE 억제',s:'대체로 100 µM 이상',lo:100,hi:3000,c:'var(--grade-d)'},
+  {k:'세포 내 Ca²⁺ 조절',s:'대체로 500 µM 이상',lo:500,hi:5000,c:'var(--grade-d)'},
+  {k:'GABA<sub>A</sub> 조절 부위',s:'매우 높은 농도',lo:500,hi:10000,c:'var(--grade-d)'},
+  {k:'Ryanodine 수용체',s:'mM 수준 실험 도구',lo:1000,hi:10000,c:'var(--grade-d)'},
+  {k:'MAO-A 억제',s:'mM 수준',lo:1000,hi:10000,c:'var(--grade-d)'}
+];
+function renderHC(m){
+  const lx=c=>(Math.log10(Math.max(c,1))/4*100);
+  const ticks=[1,10,100,1000,10000];
+  const grid=ticks.map(t=>`<span class="grid-l" style="left:${lx(t)}%"></span>`).join('');
+  const peak=Math.max(m.maxC,1);
+  const usual=`<div class="hc-row"><span class="k"><b>오늘 혈중 농도 (모델)</b><small>최고 ${m.maxC.toFixed(1)} µM</small></span><span class="hc-track">${grid}<b style="left:0;width:${lx(peak)}%;background:var(--caf);opacity:.8"></b></span></div>`;
+  $('#hc-rows').innerHTML=usual+HC.map(r=>`<div class="hc-row"><span class="k"><b>${r.k}</b><small>${r.s}</small></span><span class="hc-track">${grid}<b style="left:${lx(r.lo)}%;width:${lx(r.hi)-lx(r.lo)}%;background:${r.c};opacity:.75"></b><span class="mark" style="left:${lx(peak)}%"></span></span></div>`).join('');
+  $('#hc-axis').innerHTML=ticks.map(t=>`<span style="left:${lx(t)}%">${t>=1000?(t/1000)+' mM':t+' µM'}</span>`).join('');
+}
+
+/* ---------- 탭 ---------- */
+const TABS=['pain','wd','hc','ix','ev'];
+function setTab(k){TABS.forEach(t=>{$('#tab-'+t).setAttribute('aria-selected',String(t===k));$('#tab-'+t).tabIndex=t===k?0:-1;$('#panel-'+t).hidden=t!==k;});}
+TABS.forEach((t,i)=>{
+  $('#tab-'+t).addEventListener('click',()=>setTab(t));
+  $('#tab-'+t).addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){const n=TABS[(i+(e.key==='ArrowRight'?1:TABS.length-1))%TABS.length];setTab(n);$('#tab-'+n).focus();}});
+});
+$('#reflist').innerHTML=Object.keys(REFS).map(k=>`<li><a href="${refURL(k)}" target="_blank" rel="noopener">${REFS[k].c}</a></li>`).join('');
+
+/* ---------- 렌더 ---------- */
+let lastModel=null;
+function render(){
+  const m=compute(); lastModel=m;
+  renderReadouts(m); drawPK(m); drawOcc(m); drawMap(m); renderDetail(m); renderCards(m); applySelection(); renderPain(m); renderHC(m);
+}
+syncControls(); setTab('pain'); renderWd(); render();
+})();
+</script>
+</body>
+</html>
